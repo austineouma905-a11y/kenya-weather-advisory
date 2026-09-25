@@ -42,7 +42,7 @@ const Header: React.FC<HeaderProps> = ({ onSubscribe }) => {
         <i className="fas fa-seedling logo-icon"></i>
         <div className="logo-text">
           <h1>Kenya Agricultural Weather Advisory</h1>
-          <p>Real-time weather insights for farmers • Using Demonstration Data</p>
+          <p>Weather insights for farmers</p>
         </div>
       </div>
       <div className="date-display">

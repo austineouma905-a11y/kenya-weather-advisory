@@ -11,7 +11,7 @@ interface CropsCardProps {
 }
 
 const CropsCard: React.FC<CropsCardProps> = ({ cropScores }) => {
-  const topCrops = cropScores.sort((a, b) => b.score - a.score).slice(0, 3);
+  const topCrops = [...cropScores].sort((a, b) => b.score - a.score).slice(0, 3);
 
   return (
     <div className="card">
@@ -19,7 +19,7 @@ const CropsCard: React.FC<CropsCardProps> = ({ cropScores }) => {
         <h2 className="card-title">Recommended Crops</h2>
         <i className="fas fa-leaf card-icon"></i>
       </div>
-      
+
       <div>
         {topCrops.map((cropScore) => {
           const cropInfo = CROP_DATA[cropScore.crop];
@@ -31,11 +31,11 @@ const CropsCard: React.FC<CropsCardProps> = ({ cropScores }) => {
               <div className="crop-info">
                 <h4>{cropScore.crop}</h4>
                 <p>
-                  Ideal temp: {cropInfo.idealTemp.min}°C - {cropInfo.idealTemp.max}°C | 
-                  Rainfall: {cropInfo.idealRainfall.min}-{cropInfo.idealRainfall.max}mm/year |
-                  Season: {cropInfo.season.join(', ')}
+                  Ideal temp: {cropInfo.idealTemp.min}°C - {cropInfo.idealTemp.max}°C | Rainfall:{' '}
+                  {cropInfo.idealRainfall.min}-{cropInfo.idealRainfall.max}mm/year | Season:{' '}
+                  {cropInfo.season.join(', ')}
                 </p>
-                <small>Suitability score: {cropScore.score}/7</small>
+                <small>Indicative suitability score: {cropScore.score}/10</small>
               </div>
             </div>
           );

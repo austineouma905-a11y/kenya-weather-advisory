@@ -7,7 +7,7 @@ interface FooterProps {
 const Footer: React.FC<FooterProps> = ({ onChangeApiKey }) => {
   return (
     <footer>
-      <p>Kenya Agricultural Weather Advisory System &copy; {new Date().getFullYear()} | Demonstration Version</p>
+      <p>Kenya Agricultural Weather Advisory System &copy; {new Date().getFullYear()}</p>
       <div className="footer-links">
         <a href="#" onClick={(e) => { 
           e.preventDefault(); 

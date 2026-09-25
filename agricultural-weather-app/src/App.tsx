@@ -11,9 +11,15 @@ import CropsCard from './components/CropsCard';
 import Footer from './components/Footer';
 import { kenyanCounties } from './data/counties';
 import { CROP_DATA } from './data/cropData';
-import { WeatherData, ForecastDay, County } from './data/types';
+import { WeatherData, ForecastDay } from './data/types';
 
-import { fetchWeatherForCounty, fetchForecastOneCall } from '../src/services/WeatherService';
+import { fetchForecastForCounty, fetchWeatherForCounty } from './services/WeatherService';
+
+interface WeatherAlert {
+  headline: string;
+  description: string;
+  severity: string;
+}
 
 const App: React.FC = () => {
   const [selectedCounty, setSelectedCounty] = useState<string>('Nairobi');
@@ -22,7 +28,7 @@ const App: React.FC = () => {
   const [soilMoisture, setSoilMoisture] = useState<number>(65);
   const [advisoryLevel, setAdvisoryLevel] = useState<'low' | 'medium' | 'high'>('low');
   const [advisories, setAdvisories] = useState<string[]>([]);
-  const [alerts, setAlerts] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
   const [cropScores, setCropScores] = useState<Array<{crop: string; score: number}>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
@@ -81,7 +87,7 @@ const App: React.FC = () => {
   };
 
   // Calculate crop scores based on real weather data
-  const calculateCropScores = (weather: WeatherData): Array<{crop: string; score: number}> => {
+  const calculateCropScores = (weather: WeatherData, estimatedSoilMoisture: number): Array<{crop: string; score: number}> => {
     const scores = Object.keys(CROP_DATA).map(cropName => {
       const crop = CROP_DATA[cropName];
       let score = 0;
@@ -94,21 +100,17 @@ const App: React.FC = () => {
         score += 2;
       }
       
-      // Humidity score (30% weight)
-      if (weather.humidity >= crop.soilMoisture.min && weather.humidity <= crop.soilMoisture.max) {
+      // Soil moisture is estimated separately; humidity is not a soil measurement.
+      if (estimatedSoilMoisture >= crop.soilMoisture.min && estimatedSoilMoisture <= crop.soilMoisture.max) {
         score += 3;
-      } else if (Math.abs(weather.humidity - crop.soilMoisture.min) < 10 || 
-                Math.abs(weather.humidity - crop.soilMoisture.max) < 10) {
+      } else if (Math.abs(estimatedSoilMoisture - crop.soilMoisture.min) < 10 ||
+                Math.abs(estimatedSoilMoisture - crop.soilMoisture.max) < 10) {
         score += 1;
       }
       
       // Rainfall score (30% weight)
-      if (weather.precip_mm > 0) {
-        // Convert daily mm to annual approximation
-        const dailyToAnnual = weather.precip_mm * 365;
-        if (dailyToAnnual >= crop.idealRainfall.min && dailyToAnnual <= crop.idealRainfall.max) {
-          score += 3;
-        }
+      if (weather.precip_mm > 0 && weather.precip_mm <= 15) {
+        score += 3;
       }
       
       return { crop: cropName, score };
@@ -169,8 +171,8 @@ const App: React.FC = () => {
   };
 
   // Generate alerts based on real weather data
-  const generateAlerts = (weather: WeatherData): any[] => {
-    const alerts = [];
+  const generateAlerts = (weather: WeatherData): WeatherAlert[] => {
+    const alerts: WeatherAlert[] = [];
     
     if (weather.temp_c > 35) {
       alerts.push({
@@ -313,38 +315,12 @@ const App: React.FC = () => {
       
       // Fetch 3-day forecast using One Call API
       console.time('⏱️ Forecast fetch (One Call)');
-      const forecast = await fetchForecastOneCall(county);
+      const forecast = await fetchForecastForCounty(county);
       console.timeEnd('⏱️ Forecast fetch (One Call)');
       console.log('📅 Forecast data received:', forecast.length, 'days');
       
-      // Ensure we have exactly 3 days
-      let finalForecast = forecast;
-      if (forecast.length < 3) {
-        console.warn(`⚠️ Only ${forecast.length} days received, filling to 3 days`);
-        
-        const today = new Date();
-        for (let i = forecast.length; i < 3; i++) {
-          const date = new Date(today);
-          date.setDate(today.getDate() + i);
-          
-          // Create reasonable mock data based on county climate
-          const baseTemp = county?.climate_zone.includes('Tropical') ? 28 : 
-                          county?.climate_zone.includes('Arid') ? 32 : 
-                          county?.climate_zone.includes('Temperate') ? 22 : 25;
-          
-          forecast.push({
-            date: date.toISOString().split('T')[0],
-            day: {
-              maxtemp_c: baseTemp + Math.random() * 5,
-              mintemp_c: baseTemp - 8 + Math.random() * 5,
-              totalprecip_mm: Math.random() * 8,
-              avgtemp_c: baseTemp - 3 + Math.random() * 5,
-              condition: { code: getRandomIconCode() }
-            }
-          });
-        }
-        finalForecast = forecast;
-      }
+      // Do not fabricate missing live forecast days; the card displays placeholders.
+      const finalForecast = [...forecast];
       
       // Sort by date to ensure correct order
       finalForecast.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -360,7 +336,7 @@ const App: React.FC = () => {
       const moisture = calculateSoilMoisture(currentWeather);
       const { level, advisories } = generateAdvisories(currentWeather);
       const weatherAlerts = generateAlerts(currentWeather);
-      const scores = calculateCropScores(currentWeather);
+      const scores = calculateCropScores(currentWeather, moisture);
       
       console.log('🧮 Calculated data:', {
         soilMoisture: moisture,
@@ -381,10 +357,10 @@ const App: React.FC = () => {
       
       console.log('🎉 State updated successfully with real API data');
       
-    } catch (error: any) {
-      console.error('❌ API Error:', error.message || error);
-      console.error('🔍 Error details:', error.response?.data || error);
-      setApiError(error.message || 'Failed to fetch weather data');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch weather data';
+      console.error('Weather API error:', error);
+      setApiError(message);
       setUseMockData(true);
       fetchMockWeatherData(countyName);
     }
@@ -398,7 +374,7 @@ const App: React.FC = () => {
     const moisture = calculateSoilMoisture(mockWeather);
     const { level, advisories } = generateAdvisories(mockWeather);
     const mockAlerts = generateAlerts(mockWeather);
-    const scores = calculateCropScores(mockWeather);
+    const scores = calculateCropScores(mockWeather, moisture);
     
     setWeatherData(mockWeather);
     setForecastData(mockForecast);
@@ -413,7 +389,6 @@ const App: React.FC = () => {
   // Initial fetch
   useEffect(() => {
     console.log('🚀 App component mounted');
-    console.log('🔑 Using OpenWeather API Key (first 8 chars):', '179da340c22915a81de1e9bee1619ef1'.substring(0, 8));
     
     fetchRealWeatherData(selectedCounty);
     
@@ -482,7 +457,7 @@ const App: React.FC = () => {
               <h2 className="card-title"><i className="fas fa-exclamation-triangle"></i> API Connection Issue</h2>
             </div>
             <p>{apiError}</p>
-            <p>Using demonstration data. Check your API key and internet connection.</p>
+            <p>Showing clearly labelled sample data. Check your API key and internet connection.</p>
             <button 
               onClick={handleRetryAPI}
               style={{
@@ -509,10 +484,7 @@ const App: React.FC = () => {
             <div className="card-header">
               <h2 className="card-title"><i className="fas fa-info-circle"></i> Demonstration Mode</h2>
             </div>
-            <p>Using sample data. Real-time data fetching enabled with your OpenWeather API key.</p>
-            <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-              <strong>Current API Key:</strong> 179da340c22915a81de1e9bee1619ef1
-            </p>
+            <p>Using sample data because live weather data is not configured.</p>
           </div>
         )}
         
@@ -544,14 +516,7 @@ const App: React.FC = () => {
       </main>
       
       <Footer onChangeApiKey={() => {
-        alert(`Your OpenWeather API key is configured in WeatherService.ts
-        
-Current API Key: 179da340c22915a81de1e9bee1619ef1
-
-To change it:
-1. Open src/services/WeatherService.ts
-2. Replace the API_KEY value
-3. Save and restart the app`);
+        alert('Copy .env.example to .env.local, add REACT_APP_OPENWEATHER_API_KEY, then restart the app.');
       }} />
     </div>
   );
