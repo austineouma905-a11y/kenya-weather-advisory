@@ -1,23 +1,16 @@
 import React from 'react';
 
-interface FooterProps {
-  onChangeApiKey: () => void;
-}
-
-const Footer: React.FC<FooterProps> = ({ onChangeApiKey }) => {
+const Footer: React.FC = () => {
   return (
     <footer>
-      <p>Kenya Agricultural Weather Advisory System &copy; {new Date().getFullYear()}</p>
+      <p>&copy; {new Date().getFullYear()} Kenya Agricultural Weather Advisory · @OSTO254</p>
       <div className="footer-links">
-        <button type="button" onClick={onChangeApiKey}>
-          <i className="fas fa-key"></i> API Integration Info
-        </button>
-        <a href="https://www.weatherapi.com/" target="_blank" rel="noreferrer">
-          <i className="fas fa-cloud"></i> WeatherAPI
+        <a href="https://openweathermap.org/" target="_blank" rel="noreferrer">
+          Weather data: OpenWeather
         </a>
-        <button type="button" onClick={() => alert('This is a demonstration version using sample data.')}>
-          <i className="fas fa-info-circle"></i> About Demo
-        </button>
+        <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">
+          UV estimate: Open-Meteo
+        </a>
       </div>
     </footer>
   );

@@ -519,22 +519,12 @@ footer {
   margin-top: 1rem;
 }
 
-.footer-links a,
-.footer-links button {
+.footer-links a {
   color: white;
   text-decoration: none;
 }
 
-.footer-links button {
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  cursor: pointer;
-}
-
-.footer-links a:hover,
-.footer-links button:hover {
+.footer-links a:hover {
   text-decoration: underline;
 }
 

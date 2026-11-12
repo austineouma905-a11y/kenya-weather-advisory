@@ -590,9 +590,7 @@ const App: React.FC = () => {
         <CropsCard cropScores={cropScores} />
       </main>
       
-      <Footer onChangeApiKey={() => {
-        alert('Set OPENWEATHER_API_KEY in .env.local, then restart the weather server.');
-      }} />
+      <Footer />
     </div>
   );
 };
