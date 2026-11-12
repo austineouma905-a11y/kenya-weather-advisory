@@ -9,21 +9,15 @@ const Footer: React.FC<FooterProps> = ({ onChangeApiKey }) => {
     <footer>
       <p>Kenya Agricultural Weather Advisory System &copy; {new Date().getFullYear()}</p>
       <div className="footer-links">
-        <a href="#" onClick={(e) => { 
-          e.preventDefault(); 
-          onChangeApiKey(); 
-        }}>
+        <button type="button" onClick={onChangeApiKey}>
           <i className="fas fa-key"></i> API Integration Info
-        </a>
+        </button>
         <a href="https://www.weatherapi.com/" target="_blank" rel="noreferrer">
           <i className="fas fa-cloud"></i> WeatherAPI
         </a>
-        <a href="#" onClick={(e) => { 
-          e.preventDefault(); 
-          alert('This is a demonstration version using sample data.'); 
-        }}>
+        <button type="button" onClick={() => alert('This is a demonstration version using sample data.')}>
           <i className="fas fa-info-circle"></i> About Demo
-        </a>
+        </button>
       </div>
     </footer>
   );
