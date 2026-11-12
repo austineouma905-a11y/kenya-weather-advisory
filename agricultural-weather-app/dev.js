@@ -33,7 +33,7 @@ const start = (label, script) => {
       fetch('http://127.0.0.1:5001/api/health')
         .then((response) => response.json())
         .then((health) => {
-          if (health.version === 'weather-proxy-v2' && health.configured) {
+          if (health.version === 'weather-proxy-v3' && health.configured) {
             console.log('Using the current weather server already listening on port 5001.');
             return;
           }

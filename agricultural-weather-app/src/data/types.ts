@@ -38,6 +38,12 @@ export interface ForecastDay {
   };
 }
 
+export interface TemperatureTrendDay {
+  date: string;
+  high_c: number;
+  low_c: number;
+}
+
 export interface CropData {
   idealTemp: { min: number; max: number };
   idealRainfall: { min: number; max: number };

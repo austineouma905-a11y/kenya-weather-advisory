@@ -1,13 +1,13 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { createWeatherHandler } = require('./weatherProxy');
+const { createWeatherHandler, createTemperatureWeekHandler } = require('./weatherProxy');
 
 const appRoot = __dirname;
 const buildRoot = path.join(appRoot, 'build');
 const port = Number(process.env.PORT || 5001);
 const host = process.env.HOST || '127.0.0.1';
-const serverVersion = 'weather-proxy-v2';
+const serverVersion = 'weather-proxy-v3';
 
 // Load local secrets for development. Existing environment variables take precedence.
 const envFile = path.join(appRoot, '.env.local');
@@ -57,6 +57,7 @@ const serveStatic = (req, res, pathname) => {
 const handlers = {
   weather: createWeatherHandler('weather'),
   forecast: createWeatherHandler('forecast'),
+  'temperature-week': createTemperatureWeekHandler(),
 };
 
 const server = http.createServer((req, res) => {
@@ -68,8 +69,11 @@ const server = http.createServer((req, res) => {
       configured: Boolean(process.env.OPENWEATHER_API_KEY),
     });
   }
-  const apiRoute = url.pathname.match(/^\/api\/(weather|forecast)$/);
+  const apiRoute = url.pathname.match(/^\/api\/(weather|forecast|temperature-week)$/);
   if (apiRoute) return handlers[apiRoute[1]](req, res);
+  if (url.pathname.startsWith('/api/')) {
+    return sendJson(res, 404, { error: 'Unknown weather API route. Restart the current app server.' });
+  }
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { Allow: 'GET, HEAD' });
     return res.end();

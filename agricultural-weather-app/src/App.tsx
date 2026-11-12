@@ -9,11 +9,12 @@ import SoilCard from './components/SoilCard';
 import AlertCard from './components/AlertCard';
 import CropsCard from './components/CropsCard';
 import Footer from './components/Footer';
+import TemperatureTrendCard from './components/TemperatureTrendCard';
 import { kenyanCounties } from './data/counties';
 import { CROP_DATA } from './data/cropData';
-import { WeatherData, ForecastDay } from './data/types';
+import { WeatherData, ForecastDay, TemperatureTrendDay } from './data/types';
 
-import { fetchForecastForCounty, fetchWeatherForCounty } from './services/WeatherService';
+import { fetchForecastForCounty, fetchTemperatureTrendForCounty, fetchWeatherForCounty } from './services/WeatherService';
 
 interface WeatherAlert {
   headline: string;
@@ -41,6 +42,8 @@ const App: React.FC = () => {
   const [selectedCounty, setSelectedCounty] = useState<string>('Nairobi');
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [forecastData, setForecastData] = useState<ForecastDay[]>([]);
+  const [temperatureTrend, setTemperatureTrend] = useState<TemperatureTrendDay[]>([]);
+  const [temperatureTrendError, setTemperatureTrendError] = useState<string | null>(null);
   const [soilMoisture, setSoilMoisture] = useState<number>(65);
   const [advisoryLevel, setAdvisoryLevel] = useState<'low' | 'medium' | 'high'>('low');
   const [advisories, setAdvisories] = useState<string[]>([]);
@@ -361,6 +364,7 @@ const App: React.FC = () => {
     console.log(`🔄 Fetching weather data for: ${countyName}`);
     setIsLoading(true);
     setApiError(null);
+    setTemperatureTrendError(null);
     
     const county = kenyanCounties.find(c => c.name === countyName);
     if (!county) {
@@ -381,6 +385,13 @@ const App: React.FC = () => {
     });
     
     try {
+      const trendPromise = fetchTemperatureTrendForCounty(requestCounty)
+        .then((days) => ({ days, error: null as string | null }))
+        .catch((error: unknown) => ({
+          days: [] as TemperatureTrendDay[],
+          error: error instanceof Error ? error.message : 'Weekly temperature trend is unavailable.',
+        }));
+
       // Fetch current weather
       console.time('⏱️ Current weather fetch');
       const currentWeather = await fetchWeatherForCounty(countyName, requestCounty);
@@ -394,6 +405,7 @@ const App: React.FC = () => {
       console.log('📅 Forecast data received:', forecast.length, 'days');
       
       // Do not fabricate missing live forecast days; the card displays placeholders.
+      const trendResult = await trendPromise;
       const finalForecast = [...forecast];
       
       // Sort by date to ensure correct order
@@ -421,6 +433,8 @@ const App: React.FC = () => {
       
       setWeatherData(currentWeather);
       setForecastData(finalForecast);
+      setTemperatureTrend(trendResult.days);
+      setTemperatureTrendError(trendResult.error);
       setSoilMoisture(moisture);
       setAdvisoryLevel(level);
       setAdvisories(advisories);
@@ -612,7 +626,7 @@ const App: React.FC = () => {
         {forecastData.length > 0 && (
           <ForecastCard forecastData={forecastData} />
         )}
-        
+
         <AdvisoryCard 
           level={advisoryLevel}
           advisories={advisories}
@@ -627,6 +641,11 @@ const App: React.FC = () => {
         <AlertCard alerts={alerts} />
         
         <CropsCard cropScores={cropScores} />
+        <TemperatureTrendCard
+          countyName={selectedCounty}
+          days={temperatureTrend}
+          error={temperatureTrendError}
+        />
       </main>
       
       <Footer />

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ForecastDay, WeatherData } from '../data/types';
+import { ForecastDay, TemperatureTrendDay, WeatherData } from '../data/types';
 
 interface CountyCoordinates {
   name: string;
@@ -91,4 +91,12 @@ export const fetchForecastForCounty = async (county: CountyCoordinates): Promise
       },
     };
   });
+};
+
+export const fetchTemperatureTrendForCounty = async (county: CountyCoordinates): Promise<TemperatureTrendDay[]> => {
+  const data = await requestWeather<{ days?: TemperatureTrendDay[] }>('/api/temperature-week', county);
+  if (!Array.isArray(data.days)) {
+    throw new Error('The weekly trend route is missing. Restart the weather server with npm start.');
+  }
+  return data.days ?? [];
 };
