@@ -50,7 +50,8 @@ const App: React.FC = () => {
   const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
   const [cropScores, setCropScores] = useState<Array<{crop: string; score: number}>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
+  const [isSubscribed, setIsSubscribed] = useState<boolean>(() => localStorage.getItem('weather-alerts-enabled') === 'true');
+  const [notificationStatus, setNotificationStatus] = useState<string>('');
 
   const [useMockData, setUseMockData] = useState<boolean>(true); // Start with mock data
   const [apiError, setApiError] = useState<string | null>(null);
@@ -58,6 +59,33 @@ const App: React.FC = () => {
   const [locationReady, setLocationReady] = useState<boolean>(false);
   const [locationMessage, setLocationMessage] = useState<string>('');
   const [locationNeedsAction, setLocationNeedsAction] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isSubscribed || useMockData || !forecastData.length || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+
+    const coldForecast = forecastData.find(day => day.day.mintemp_c <= 15);
+    if (!coldForecast) return;
+
+    const alertKey = `cold-weather-alert:${selectedCounty}:${coldForecast.date}`;
+    if (localStorage.getItem(alertKey)) return;
+
+    const dateLabel = new Date(`${coldForecast.date}T00:00:00`).toLocaleDateString('en-KE', {
+      weekday: 'long', month: 'long', day: 'numeric'
+    });
+    new Notification(`Cold weather alert for ${selectedCounty}`, {
+      body: `The forecast low on ${dateLabel} is ${coldForecast.day.mintemp_c.toFixed(1)}°C. Protect sensitive crops and livestock.`,
+      tag: alertKey
+    });
+    localStorage.setItem(alertKey, 'sent');
+    setNotificationStatus(`Cold weather alert sent for ${selectedCounty}.`);
+  }, [forecastData, isSubscribed, selectedCounty, useMockData]);
+
+  useEffect(() => {
+    if (!notificationStatus) return;
+    const timeout = window.setTimeout(() => setNotificationStatus(''), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [notificationStatus]);
 
   const requestCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -507,9 +535,27 @@ const App: React.FC = () => {
     setSelectedCounty(countyName);
   };
 
-  const handleSubscribe = () => {
-    setIsSubscribed(!isSubscribed);
-    alert(`You have ${isSubscribed ? 'unsubscribed from' : 'subscribed to'} weather alerts for ${selectedCounty}!`);
+  const handleSubscribe = async () => {
+    if (isSubscribed) {
+      localStorage.removeItem('weather-alerts-enabled');
+      setIsSubscribed(false);
+      setNotificationStatus('Weather alerts turned off.');
+      return;
+    }
+
+    if (!('Notification' in window)) {
+      setNotificationStatus('This browser does not support notifications.');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      localStorage.setItem('weather-alerts-enabled', 'true');
+      setIsSubscribed(true);
+      setNotificationStatus(`Weather alerts enabled for ${selectedCounty}. Cold alerts are sent when forecast lows reach 15°C or below.`);
+    } else {
+      setNotificationStatus('Notifications are blocked. Allow them in your browser site settings to receive weather alerts.');
+    }
   };
 
   const handleRetryAPI = () => {
@@ -541,7 +587,7 @@ const App: React.FC = () => {
 
   return (
     <div className="container">
-      <Header onSubscribe={handleSubscribe} />
+      <Header onSubscribe={handleSubscribe} isSubscribed={isSubscribed} notificationStatus={notificationStatus} />
       <Sidebar 
         selectedCounty={selectedCounty}
         onCountySelect={handleCountySelect}
@@ -654,3 +700,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+

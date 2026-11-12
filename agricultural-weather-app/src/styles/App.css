@@ -596,6 +596,14 @@ header {
   background-color: #f57c00;
 }
 
+.notification-status {
+  max-width: 280px;
+  margin-top: 0.5rem;
+  color: #237a3b;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 /* API Key Input */
 .api-key-container {
   position: fixed;

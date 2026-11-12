@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 
 interface HeaderProps {
   onSubscribe: () => void;
+  isSubscribed: boolean;
+  notificationStatus: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ onSubscribe }) => {
+const Header: React.FC<HeaderProps> = ({ onSubscribe, isSubscribed, notificationStatus }) => {
   const [currentDate, setCurrentDate] = useState('');
   const [currentTime, setCurrentTime] = useState('');
 
@@ -50,8 +52,9 @@ const Header: React.FC<HeaderProps> = ({ onSubscribe }) => {
         <div className="current-time">{currentTime}</div>
         <button className="subscribe-btn" onClick={onSubscribe}>
           <i className="fas fa-bell"></i>
-          Subscribe to Alerts
+          {isSubscribed ? 'Turn Alerts Off' : 'Enable Weather Alerts'}
         </button>
+        {notificationStatus && <div className="notification-status" role="status">{notificationStatus}</div>}
       </div>
     </header>
   );
