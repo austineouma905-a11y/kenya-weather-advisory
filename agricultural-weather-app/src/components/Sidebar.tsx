@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { County } from '../data/types';
 import { kenyanCounties } from '../data/counties';
 
@@ -8,6 +8,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ selectedCounty, onCountySelect }) => {
+  const [countyQuery, setCountyQuery] = useState('');
   // Group counties by region
   const countiesByRegion = kenyanCounties.reduce((acc, county) => {
     if (!acc[county.region]) {
@@ -16,13 +17,40 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedCounty, onCountySelect }) => 
     acc[county.region].push(county);
     return acc;
   }, {} as Record<string, County[]>);
+  const normalizedQuery = countyQuery.trim().toLocaleLowerCase();
+  const filteredRegions = Object.entries(countiesByRegion)
+    .map(([region, counties]) => [
+      region,
+      counties.filter((county) => county.name.toLocaleLowerCase().includes(normalizedQuery)),
+    ] as const)
+    .filter(([, counties]) => counties.length > 0);
+
+  const selectCounty = (countyName: string) => {
+    onCountySelect(countyName);
+    setCountyQuery('');
+  };
 
   return (
     <aside className="sidebar">
       <div className="region-selector">
         <h3>Select County</h3>
+        <label className="county-search-label" htmlFor="county-search">Search counties</label>
+        <div className="county-search">
+          <i className="fas fa-search" aria-hidden="true"></i>
+          <input
+            id="county-search"
+            type="search"
+            value={countyQuery}
+            onChange={(event) => setCountyQuery(event.target.value)}
+            placeholder="Type a county name"
+            autoComplete="off"
+          />
+        </div>
         <ul className="region-list">
-          {Object.entries(countiesByRegion).map(([region, counties]) => (
+          {filteredRegions.length === 0 && (
+            <li className="county-search-empty" role="status">No counties found.</li>
+          )}
+          {filteredRegions.map(([region, counties]) => (
             <React.Fragment key={region}>
               <li style={{ 
                 backgroundColor: '#f0f0f0', 
@@ -33,13 +61,15 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedCounty, onCountySelect }) => 
                 <i className="fas fa-map"></i> {region} Region
               </li>
               {counties.map((county) => (
-                <li
-                  key={county.id}
-                  className={selectedCounty === county.name ? 'active' : ''}
-                  onClick={() => onCountySelect(county.name)}
-                  data-location={county.name}
-                >
-                  <i className="fas fa-map-marker-alt"></i> {county.name}
+                <li key={county.id}>
+                  <button
+                    type="button"
+                    className={`county-option${selectedCounty === county.name ? ' active' : ''}`}
+                    onClick={() => selectCounty(county.name)}
+                    data-location={county.name}
+                  >
+                    <i className="fas fa-map-marker-alt" aria-hidden="true"></i> {county.name}
+                  </button>
                 </li>
               ))}
             </React.Fragment>

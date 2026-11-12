@@ -126,6 +126,76 @@ header {
   font-size: 0.9rem;
 }
 
+.county-search-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--gray-color);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.county-search {
+  position: relative;
+  margin-bottom: 0.85rem;
+}
+
+.county-search > i {
+  position: absolute;
+  top: 50%;
+  left: 0.8rem;
+  color: var(--gray-color);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.county-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.7rem 0.8rem 0.7rem 2.25rem;
+  border: 1px solid #d5dadd;
+  border-radius: var(--border-radius);
+  background: #fff;
+  color: var(--dark-color);
+  font: inherit;
+}
+
+.county-search input:focus {
+  border-color: var(--primary-color);
+  outline: 2px solid rgba(46, 125, 50, 0.2);
+  outline-offset: 1px;
+}
+
+.county-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.county-option.active {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.county-option:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--primary-color);
+  outline-offset: 3px;
+}
+
+.county-search-empty {
+  color: var(--gray-color);
+  cursor: default !important;
+  font-style: italic;
+}
+
 /* Main Content Styles */
 .main-content {
   padding: 2rem;
