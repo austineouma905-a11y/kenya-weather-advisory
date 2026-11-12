@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './styles/App.css';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -21,6 +21,22 @@ interface WeatherAlert {
   severity: string;
 }
 
+interface UserLocation {
+  latitude: number;
+  longitude: number;
+}
+
+const nearestCounty = (location: UserLocation) => kenyanCounties.reduce((nearest, county) => {
+  const toRadians = (degrees: number) => degrees * Math.PI / 180;
+  const distance = (candidate: typeof county) => {
+    const latitudeDelta = toRadians(candidate.latitude - location.latitude);
+    const longitudeDelta = toRadians(candidate.longitude - location.longitude);
+    return latitudeDelta ** 2 + longitudeDelta ** 2
+      * Math.cos(toRadians((candidate.latitude + location.latitude) / 2)) ** 2;
+  };
+  return distance(county) < distance(nearest) ? county : nearest;
+});
+
 const App: React.FC = () => {
   const [selectedCounty, setSelectedCounty] = useState<string>('Nairobi');
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -35,6 +51,9 @@ const App: React.FC = () => {
 
   const [useMockData, setUseMockData] = useState<boolean>(true); // Start with mock data
   const [apiError, setApiError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [locationReady, setLocationReady] = useState<boolean>(false);
+  const [locationMessage, setLocationMessage] = useState<string>('');
 
   // Generate mock weather data
   const generateMockWeatherData = (countyName: string): WeatherData => {
@@ -287,7 +306,7 @@ const App: React.FC = () => {
   };
 
   // Fetch real weather data using One Call API
-  const fetchRealWeatherData = async (countyName: string) => {
+  const fetchRealWeatherData = async (countyName: string, location?: UserLocation | null) => {
     console.log(`🔄 Fetching weather data for: ${countyName}`);
     setIsLoading(true);
     setApiError(null);
@@ -299,23 +318,27 @@ const App: React.FC = () => {
       fetchMockWeatherData(countyName);
       return;
     }
+
+    const requestCounty = location
+      ? { ...county, latitude: location.latitude, longitude: location.longitude }
+      : county;
     
     console.log(`📍 Using county data:`, {
       name: county.name,
-      lat: county.latitude,
-      lon: county.longitude
+      lat: requestCounty.latitude,
+      lon: requestCounty.longitude
     });
     
     try {
       // Fetch current weather
       console.time('⏱️ Current weather fetch');
-      const currentWeather = await fetchWeatherForCounty(countyName, county);
+      const currentWeather = await fetchWeatherForCounty(countyName, requestCounty);
       console.timeEnd('⏱️ Current weather fetch');
       console.log('✅ Current weather data:', currentWeather);
       
       // Fetch 3-day forecast using One Call API
       console.time('⏱️ Forecast fetch (One Call)');
-      const forecast = await fetchForecastForCounty(county);
+      const forecast = await fetchForecastForCounty(requestCounty);
       console.timeEnd('⏱️ Forecast fetch (One Call)');
       console.log('📅 Forecast data received:', forecast.length, 'days');
       
@@ -366,6 +389,11 @@ const App: React.FC = () => {
     }
   };
 
+  // Keep the latest fetch implementation available without restarting the refresh timer
+  // every time this component renders.
+  const fetchWeatherDataRef = useRef(fetchRealWeatherData);
+  fetchWeatherDataRef.current = fetchRealWeatherData;
+
   // Fallback to mock data
   const fetchMockWeatherData = (countyName: string) => {
     console.log(`🔄 Using mock data for: ${countyName}`);
@@ -386,22 +414,59 @@ const App: React.FC = () => {
     setIsLoading(false);
   };
 
+  // Detect the browser's location once, then use the nearest county name for display.
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationMessage('Location is unavailable in this browser. Showing Nairobi weather.');
+      setLocationReady(true);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const location = { latitude: coords.latitude, longitude: coords.longitude };
+        const withinKenyaRegion = location.latitude >= -5.5 && location.latitude <= 5.5
+          && location.longitude >= 33.5 && location.longitude <= 42.5;
+
+        if (!withinKenyaRegion) {
+          setLocationMessage('Your location is outside the Kenya service area. Showing Nairobi weather.');
+          setLocationReady(true);
+          return;
+        }
+
+        const county = nearestCounty(location);
+        setUserLocation(location);
+        setSelectedCounty(county.name);
+        setLocationMessage(`Using your current location near ${county.name}.`);
+        setLocationReady(true);
+      },
+      () => {
+        setLocationMessage('Location permission was not granted. Showing Nairobi weather.');
+        setLocationReady(true);
+      },
+      { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 }
+    );
+  }, []);
+
   // Initial fetch
   useEffect(() => {
     console.log('🚀 App component mounted');
     
-    fetchRealWeatherData(selectedCounty);
+    if (!locationReady) return;
+    fetchWeatherDataRef.current(selectedCounty, userLocation);
     
     // Refresh data every 10 minutes
     const interval = setInterval(() => {
       console.log('🔄 Auto-refreshing weather data...');
-      fetchRealWeatherData(selectedCounty);
+      fetchWeatherDataRef.current(selectedCounty, userLocation);
     }, 10 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, [selectedCounty]);
+  }, [selectedCounty, locationReady, userLocation]);
 
   const handleCountySelect = (countyName: string) => {
+    setUserLocation(null);
+    setLocationMessage(`Showing weather for ${countyName}.`);
     console.log(`📍 County selected: ${countyName}`);
     setSelectedCounty(countyName);
   };
@@ -413,7 +478,7 @@ const App: React.FC = () => {
 
   const handleRetryAPI = () => {
     console.log('🔄 Retrying API connection...');
-    fetchRealWeatherData(selectedCounty);
+    fetchRealWeatherData(selectedCounty, userLocation);
   };
 
   if (isLoading) {
@@ -447,6 +512,16 @@ const App: React.FC = () => {
       />
       
       <main className="main-content">
+        {locationMessage && (
+          <div className="card" role="status" style={{
+            gridColumn: '1 / -1',
+            backgroundColor: '#e8f5e9',
+            borderLeft: '5px solid var(--primary-color)'
+          }}>
+            {locationMessage}
+          </div>
+        )}
+
         {apiError && (
           <div className="card" style={{
             gridColumn: '1 / -1',
@@ -516,7 +591,7 @@ const App: React.FC = () => {
       </main>
       
       <Footer onChangeApiKey={() => {
-        alert('Copy .env.example to .env.local, add REACT_APP_OPENWEATHER_API_KEY, then restart the app.');
+        alert('Set OPENWEATHER_API_KEY in .env.local, then restart the weather server.');
       }} />
     </div>
   );

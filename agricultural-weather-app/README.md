@@ -1,4 +1,22 @@
-# Getting Started with Create React App
+# Kenya Weather Advisory
+
+## Run locally
+
+The weather API key must stay on the Node server. Keep it in `agricultural-weather-app/.env.local` as `OPENWEATHER_API_KEY=your-key`; do not use a `REACT_APP_` prefix because Create React App embeds those variables in browser files.
+
+Start the server and frontend together from this directory:
+
+```bash
+npm start
+```
+
+The frontend sends weather requests to the same-origin `/api` routes, and the server forwards them to OpenWeather. The server only accepts coordinates inside the Kenya service area. For production, run `npm run build` and `npm run serve` on a Node.js 18+ host, set `HOST=0.0.0.0` in the host environment, and serve the app and `/api` routes from that server. A static-only host cannot keep this API key private unless it forwards `/api` to a server-side function.
+
+On startup, the browser asks for location permission. When allowed inside Kenya, the app labels the nearest county and requests weather for the precise device coordinates. If permission is denied or the location is outside the supported region, it uses Nairobi. Browser geolocation requires HTTPS in production (localhost works for development).
+
+If the key was previously added as `REACT_APP_OPENWEATHER_API_KEY`, remove that variable from the hosting environment and rebuild the frontend. Rotate any key that has been exposed in a browser bundle or screenshot.
+
+## Create React App commands
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
@@ -9,7 +27,7 @@ In the project directory, you can run:
 ### `npm start`
 
 Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Open the local URL printed in the terminal. If port 3000 is already in use, Create React App chooses another port.
 
 The page will reload if you make edits.\
 You will also see any lint errors in the console.

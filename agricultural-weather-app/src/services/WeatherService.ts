@@ -1,9 +1,6 @@
 import axios from 'axios';
 import { ForecastDay, WeatherData } from '../data/types';
 
-const API_KEY = process.env.REACT_APP_OPENWEATHER_API_KEY;
-const BASE_URL = 'https://api.openweathermap.org/data/2.5';
-
 interface CountyCoordinates {
   name: string;
   latitude: number;
@@ -17,11 +14,26 @@ interface ForecastItem {
   rain?: { '3h'?: number };
 }
 
-const requireApiKey = (): string => {
-  if (!API_KEY) {
-    throw new Error('Weather API key is not configured. Add REACT_APP_OPENWEATHER_API_KEY to .env.local.');
+const requestWeather = async <T,>(url: string, county: CountyCoordinates): Promise<T> => {
+  try {
+    const response = await axios.get<T>(url, {
+      params: { lat: county.latitude, lon: county.longitude },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      const responseError = error.response?.data as { error?: unknown; message?: unknown } | undefined;
+      const serverMessage = typeof responseError?.error === 'string'
+        ? responseError.error
+        : typeof responseError?.message === 'string' ? responseError.message : null;
+      if (serverMessage) throw new Error(serverMessage);
+      if (!error.response) {
+        throw new Error('The weather server is not responding. Restart the app with npm start.');
+      }
+      throw new Error(`Weather service returned HTTP ${error.response.status}.`);
+    }
+    throw error;
   }
-  return API_KEY;
 };
 
 const msToKph = (metresPerSecond: number): number => metresPerSecond * 3.6;
@@ -38,10 +50,7 @@ const mapWeatherCode = (openWeatherCode: number): number => {
 };
 
 export const fetchWeatherForCounty = async (countyName: string, county: CountyCoordinates): Promise<WeatherData> => {
-  const response = await axios.get(`${BASE_URL}/weather`, {
-    params: { lat: county.latitude, lon: county.longitude, appid: requireApiKey(), units: 'metric' },
-  });
-  const data = response.data;
+  const data = await requestWeather<any>('/api/weather', county);
   const now = data.dt ?? Math.floor(Date.now() / 1000);
 
   return {
@@ -51,19 +60,16 @@ export const fetchWeatherForCounty = async (countyName: string, county: CountyCo
     humidity: data.main.humidity,
     wind_kph: msToKph(data.wind.speed),
     precip_mm: data.rain?.['1h'] ?? 0,
-    // The current-weather endpoint does not provide UV; avoid inventing a value.
     uv: 0,
     is_day: !data.sys?.sunrise || !data.sys?.sunset || (now >= data.sys.sunrise && now < data.sys.sunset) ? 1 : 0,
     icon_code: mapWeatherCode(data.weather[0].id),
   };
 };
 
-/** Groups OpenWeather's standard 5-day/3-hour forecast into three calendar days. */
+/** Groups the server-proxied 5-day/3-hour forecast into three calendar days. */
 export const fetchForecastForCounty = async (county: CountyCoordinates): Promise<ForecastDay[]> => {
-  const response = await axios.get(`${BASE_URL}/forecast`, {
-    params: { lat: county.latitude, lon: county.longitude, appid: requireApiKey(), units: 'metric' },
-  });
-  const items: ForecastItem[] = response.data.list ?? [];
+  const data = await requestWeather<{ list?: ForecastItem[] }>('/api/forecast', county);
+  const items: ForecastItem[] = data.list ?? [];
   const grouped = new Map<string, ForecastItem[]>();
 
   items.forEach((item) => {

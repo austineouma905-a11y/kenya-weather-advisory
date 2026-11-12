@@ -19,11 +19,14 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "node dev.js",
     "build": "react-scripts build",
+    "server": "node server.js",
+    "serve": "node server.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
+  "proxy": "http://127.0.0.1:5001",
   "eslintConfig": {
     "extends": [
       "react-app",

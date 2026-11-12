@@ -1,0 +1,237 @@
+﻿[
+    {
+        "name":  "Mombasa",
+        "latitude":  -4.0435,
+        "longitude":  39.6682
+    },
+    {
+        "name":  "Kwale",
+        "latitude":  -4.1816,
+        "longitude":  39.4606
+    },
+    {
+        "name":  "Kilifi",
+        "latitude":  -3.6305,
+        "longitude":  39.8499
+    },
+    {
+        "name":  "Tana River",
+        "latitude":  -1.4998,
+        "longitude":  40.0169
+    },
+    {
+        "name":  "Lamu",
+        "latitude":  -2.2696,
+        "longitude":  40.9006
+    },
+    {
+        "name":  "Taita-Taveta",
+        "latitude":  -3.3968,
+        "longitude":  38.3715
+    },
+    {
+        "name":  "Garissa",
+        "latitude":  -0.4532,
+        "longitude":  39.6461
+    },
+    {
+        "name":  "Wajir",
+        "latitude":  1.7488,
+        "longitude":  40.0586
+    },
+    {
+        "name":  "Mandera",
+        "latitude":  3.9273,
+        "longitude":  41.8569
+    },
+    {
+        "name":  "Marsabit",
+        "latitude":  2.3346,
+        "longitude":  37.9902
+    },
+    {
+        "name":  "Isiolo",
+        "latitude":  0.3556,
+        "longitude":  37.5833
+    },
+    {
+        "name":  "Meru",
+        "latitude":  0.0515,
+        "longitude":  37.6459
+    },
+    {
+        "name":  "Tharaka-Nithi",
+        "latitude":  -0.2961,
+        "longitude":  37.8173
+    },
+    {
+        "name":  "Embu",
+        "latitude":  -0.5388,
+        "longitude":  37.4596
+    },
+    {
+        "name":  "Kitui",
+        "latitude":  -1.3667,
+        "longitude":  38.0167
+    },
+    {
+        "name":  "Machakos",
+        "latitude":  -1.5177,
+        "longitude":  37.2634
+    },
+    {
+        "name":  "Makueni",
+        "latitude":  -1.8036,
+        "longitude":  37.6231
+    },
+    {
+        "name":  "Nyandarua",
+        "latitude":  -0.4199,
+        "longitude":  36.4563
+    },
+    {
+        "name":  "Nyeri",
+        "latitude":  -0.4371,
+        "longitude":  36.958
+    },
+    {
+        "name":  "Kirinyaga",
+        "latitude":  -0.4999,
+        "longitude":  37.2803
+    },
+    {
+        "name":  "Murang\u0027a",
+        "latitude":  -0.72,
+        "longitude":  37.1525
+    },
+    {
+        "name":  "Kiambu",
+        "latitude":  -1.0316,
+        "longitude":  36.8681
+    },
+    {
+        "name":  "Turkana",
+        "latitude":  3.1158,
+        "longitude":  35.5994
+    },
+    {
+        "name":  "West Pokot",
+        "latitude":  1.2389,
+        "longitude":  35.111
+    },
+    {
+        "name":  "Samburu",
+        "latitude":  1.0986,
+        "longitude":  36.6984
+    },
+    {
+        "name":  "Trans Nzoia",
+        "latitude":  1.0567,
+        "longitude":  34.9503
+    },
+    {
+        "name":  "Uasin Gishu",
+        "latitude":  0.5143,
+        "longitude":  35.2698
+    },
+    {
+        "name":  "Elgeyo-Marakwet",
+        "latitude":  0.5198,
+        "longitude":  35.5723
+    },
+    {
+        "name":  "Nandi",
+        "latitude":  0.1833,
+        "longitude":  35.1265
+    },
+    {
+        "name":  "Baringo",
+        "latitude":  0.4667,
+        "longitude":  35.9667
+    },
+    {
+        "name":  "Laikipia",
+        "latitude":  0.2067,
+        "longitude":  36.7833
+    },
+    {
+        "name":  "Nakuru",
+        "latitude":  -0.3031,
+        "longitude":  36.08
+    },
+    {
+        "name":  "Narok",
+        "latitude":  -1.0807,
+        "longitude":  35.8711
+    },
+    {
+        "name":  "Kajiado",
+        "latitude":  -1.8431,
+        "longitude":  36.7929
+    },
+    {
+        "name":  "Kericho",
+        "latitude":  -0.3676,
+        "longitude":  35.2831
+    },
+    {
+        "name":  "Bomet",
+        "latitude":  -0.78,
+        "longitude":  35.3414
+    },
+    {
+        "name":  "Kakamega",
+        "latitude":  0.2842,
+        "longitude":  34.7523
+    },
+    {
+        "name":  "Vihiga",
+        "latitude":  0.0765,
+        "longitude":  34.7197
+    },
+    {
+        "name":  "Bungoma",
+        "latitude":  0.5695,
+        "longitude":  34.5584
+    },
+    {
+        "name":  "Busia",
+        "latitude":  0.4608,
+        "longitude":  34.1115
+    },
+    {
+        "name":  "Siaya",
+        "latitude":  0.0607,
+        "longitude":  34.2881
+    },
+    {
+        "name":  "Kisumu",
+        "latitude":  -0.1022,
+        "longitude":  34.7617
+    },
+    {
+        "name":  "Homa Bay",
+        "latitude":  -0.536,
+        "longitude":  34.4506
+    },
+    {
+        "name":  "Migori",
+        "latitude":  -1.0634,
+        "longitude":  34.4731
+    },
+    {
+        "name":  "Kisii",
+        "latitude":  -0.6773,
+        "longitude":  34.7796
+    },
+    {
+        "name":  "Nyamira",
+        "latitude":  -0.5667,
+        "longitude":  34.9833
+    },
+    {
+        "name":  "Nairobi",
+        "latitude":  -1.286389,
+        "longitude":  36.817223
+    }
+]
