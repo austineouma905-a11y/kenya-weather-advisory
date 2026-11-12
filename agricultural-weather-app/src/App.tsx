@@ -69,7 +69,7 @@ const App: React.FC = () => {
       humidity: 60 + Math.random() * 30,
       wind_kph: 5 + Math.random() * 20,
       precip_mm: Math.random() * 10,
-      uv: Math.floor(1 + Math.random() * 10),
+      uv: null,
       is_day: 1,
       icon_code: getRandomIconCode()
     };

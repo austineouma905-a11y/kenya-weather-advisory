@@ -60,7 +60,7 @@ export const fetchWeatherForCounty = async (countyName: string, county: CountyCo
     humidity: data.main.humidity,
     wind_kph: msToKph(data.wind.speed),
     precip_mm: data.rain?.['1h'] ?? 0,
-    uv: 0,
+    uv: typeof data.uv_index === 'number' ? data.uv_index : null,
     is_day: !data.sys?.sunrise || !data.sys?.sunset || (now >= data.sys.sunrise && now < data.sys.sunset) ? 1 : 0,
     icon_code: mapWeatherCode(data.weather[0].id),
   };

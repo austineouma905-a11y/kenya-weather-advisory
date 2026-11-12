@@ -20,7 +20,7 @@ export interface WeatherData {
   humidity: number;
   wind_kph: number;
   precip_mm: number;
-  uv: number;
+  uv: number | null;
   is_day: number;
   icon_code: number;
 }
