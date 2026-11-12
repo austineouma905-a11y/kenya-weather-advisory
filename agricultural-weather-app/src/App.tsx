@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './styles/App.css';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -54,6 +54,57 @@ const App: React.FC = () => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationReady, setLocationReady] = useState<boolean>(false);
   const [locationMessage, setLocationMessage] = useState<string>('');
+  const [locationNeedsAction, setLocationNeedsAction] = useState<boolean>(false);
+
+  const requestCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationMessage('This browser does not provide device location. Showing Nairobi weather.');
+      setLocationNeedsAction(true);
+      setLocationReady(true);
+      return;
+    }
+
+    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+      setLocationMessage('Location access requires a secure HTTPS connection. Showing Nairobi weather.');
+      setLocationNeedsAction(true);
+      setLocationReady(true);
+      return;
+    }
+
+    setLocationNeedsAction(false);
+    setLocationMessage('Requesting your device location…');
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const location = { latitude: coords.latitude, longitude: coords.longitude };
+        const withinKenyaRegion = location.latitude >= -5.5 && location.latitude <= 5.5
+          && location.longitude >= 33.5 && location.longitude <= 42.5;
+
+        if (!withinKenyaRegion) {
+          setLocationMessage('Your location is outside the Kenya service area. Showing Nairobi weather.');
+          setLocationReady(true);
+          return;
+        }
+
+        const county = nearestCounty(location);
+        setUserLocation(location);
+        setSelectedCounty(county.name);
+        setLocationMessage(`Using your current location near ${county.name}.`);
+        setLocationReady(true);
+      },
+      (error) => {
+        if (error.code === 1) {
+          setLocationMessage('Location access is blocked. Allow location for this site in your browser settings, then try again.');
+        } else if (error.code === 2) {
+          setLocationMessage('Your device could not determine its location. Check that Location Services are on, then try again.');
+        } else {
+          setLocationMessage('The location request timed out. Try again to load nearby weather.');
+        }
+        setLocationNeedsAction(true);
+        setLocationReady(true);
+      },
+      { enableHighAccuracy: false, maximumAge: 300000, timeout: 15000 }
+    );
+  }, []);
 
   // Generate mock weather data
   const generateMockWeatherData = (countyName: string): WeatherData => {
@@ -414,39 +465,10 @@ const App: React.FC = () => {
     setIsLoading(false);
   };
 
-  // Detect the browser's location once, then use the nearest county name for display.
+  // Ask for the browser's location on entry, then use the nearest county name for display.
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setLocationMessage('Location is unavailable in this browser. Showing Nairobi weather.');
-      setLocationReady(true);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        const location = { latitude: coords.latitude, longitude: coords.longitude };
-        const withinKenyaRegion = location.latitude >= -5.5 && location.latitude <= 5.5
-          && location.longitude >= 33.5 && location.longitude <= 42.5;
-
-        if (!withinKenyaRegion) {
-          setLocationMessage('Your location is outside the Kenya service area. Showing Nairobi weather.');
-          setLocationReady(true);
-          return;
-        }
-
-        const county = nearestCounty(location);
-        setUserLocation(location);
-        setSelectedCounty(county.name);
-        setLocationMessage(`Using your current location near ${county.name}.`);
-        setLocationReady(true);
-      },
-      () => {
-        setLocationMessage('Location permission was not granted. Showing Nairobi weather.');
-        setLocationReady(true);
-      },
-      { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 }
-    );
-  }, []);
+    requestCurrentLocation();
+  }, [requestCurrentLocation]);
 
   // Initial fetch
   useEffect(() => {
@@ -494,9 +516,9 @@ const App: React.FC = () => {
           textAlign: 'center'
         }}>
           <i className="fas fa-cloud-sun" style={{ fontSize: '3rem', marginBottom: '1rem' }}></i>
-          <div>Loading weather data for {selectedCounty}...</div>
+          <div>{locationReady ? `Loading weather data for ${selectedCounty}...` : 'Checking your location...'}</div>
           <div style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-            Fetching real-time data from OpenWeather API
+            {locationReady ? 'Fetching current weather and forecast' : 'Allow location access to show nearby weather'}
           </div>
         </div>
       </div>
@@ -518,7 +540,24 @@ const App: React.FC = () => {
             backgroundColor: '#e8f5e9',
             borderLeft: '5px solid var(--primary-color)'
           }}>
-            {locationMessage}
+            <p>{locationMessage}</p>
+            {locationNeedsAction && (
+              <button
+                type="button"
+                onClick={requestCurrentLocation}
+                style={{
+                  marginTop: '0.75rem',
+                  padding: '0.55rem 0.9rem',
+                  border: 0,
+                  borderRadius: 'var(--border-radius)',
+                  backgroundColor: 'var(--primary-color)',
+                  color: 'white',
+                  cursor: 'pointer',
+                }}
+              >
+                <i className="fas fa-location-crosshairs" aria-hidden="true"></i> Use my location
+              </button>
+            )}
           </div>
         )}
 
