@@ -587,7 +587,8 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="container">
+    <>
+      <div className="container">
       <Header onSubscribe={handleSubscribe} isSubscribed={isSubscribed} notificationStatus={notificationStatus} />
       <Sidebar 
         selectedCounty={selectedCounty}
@@ -695,9 +696,9 @@ const App: React.FC = () => {
         />
         <CropSuitabilityChart cropScores={cropScores} />
       </main>
-      
+      </div>
       <Footer />
-    </div>
+    </>
   );
 };
 

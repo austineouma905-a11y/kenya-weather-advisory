@@ -81,14 +81,25 @@ header {
 
 /* Sidebar Styles */
 .sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-self: start;
+  height: calc(100vh - 90px);
+  min-height: 0;
+  flex-direction: column;
   background-color: white;
   padding: 2rem 1.5rem;
   border-right: 1px solid #eaeaea;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .region-selector {
-  margin-bottom: 2rem;
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  margin-bottom: 0;
 }
 
 .region-selector h3 {
@@ -99,9 +110,13 @@ header {
 }
 
 .region-list {
+  min-height: 0;
+  flex: 1 1 auto;
   list-style: none;
-  max-height: 400px;
+  max-height: none;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
 .region-list li {
@@ -838,14 +853,19 @@ footer {
   }
 
   .sidebar {
+    position: static;
     grid-column: 1;
+    display: block;
+    height: auto;
+    min-height: 0;
     padding: 1rem 1.5rem;
     border-right: 0;
     border-bottom: 1px solid #eaeaea;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .region-selector {
+    display: block;
     margin-bottom: 0;
   }
 
@@ -854,23 +874,20 @@ footer {
   }
 
   .region-list {
-    display: flex;
-    gap: 0.5rem;
-    max-height: none;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 0.4rem;
+    display: block;
+    max-height: max(280px, calc(100vh - 300px));
+    overflow-x: hidden;
+    overflow-y: auto;
     scrollbar-width: thin;
   }
 
   .region-list li {
-    flex: 0 0 auto;
-    margin: 0;
-    white-space: nowrap;
+    flex: initial;
+    white-space: normal;
   }
 
   .county-info {
-    display: none;
+    display: block;
   }
 
   .main-content {
