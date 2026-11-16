@@ -42,6 +42,7 @@ export interface TemperatureTrendDay {
   date: string;
   high_c: number;
   low_c: number;
+  isPreviousWeek?: boolean;
 }
 
 export interface CropData {

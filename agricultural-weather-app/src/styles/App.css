@@ -348,8 +348,9 @@ header {
 
 .temperature-chart-legend {
   display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem 1.25rem;
   margin-bottom: 0.5rem;
   color: var(--gray-color);
@@ -375,6 +376,10 @@ header {
 
 .temperature-legend-low {
   background: var(--primary-color);
+}
+
+.temperature-legend-reference {
+  background: #aeb6b0;
 }
 
 .temperature-chart-source {
@@ -403,7 +408,7 @@ header {
 }
 
 .temperature-grid-line {
-  stroke: #55f78b;
+  stroke: #6ce093;
   stroke-width: 0.5;
 }
 
@@ -419,6 +424,11 @@ header {
 
 .temperature-bar-low {
   fill: var(--primary-color);
+}
+
+.temperature-bar-reference {
+  fill: #aeb6b0;
+  opacity: 0.8;
 }
 
 .temperature-summary {
@@ -475,6 +485,11 @@ header {
   font-weight: 600;
 }
 
+.temperature-summary-reference {
+  color: #858d87;
+  opacity: 0.8;
+}
+
 /* Advisory Card */
 .advisory-level {
   display: inline-block;
@@ -521,6 +536,146 @@ header {
 }
 
 /* Crops Card */
+.crop-suitability-chart {
+  grid-column: 1 / -1;
+  justify-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  background: #f8f9fa;
+  text-align: center;
+}
+
+.crop-suitability-chart h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+
+.crop-suitability-chart > div:first-child > p {
+  margin: 0;
+  color: var(--gray-color);
+  font-size: 0.82rem;
+}
+
+.crop-pie-layout {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  padding-left: 30px;
+}
+
+.crop-pie-chart {
+  flex: 0 0 190px;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+}
+
+.crop-pie-legend {
+  display: grid;
+  flex: 0 1 200px;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crop-pie-legend li {
+  display: grid;
+  grid-template-columns: 0.7rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+}
+
+.crop-pie-key {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 2px;
+}
+
+.crop-pie-legend strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.crop-pie-empty {
+  margin: 0.75rem 0 0;
+  color: var(--gray-color);
+  font-size: 0.9rem;
+}
+
+.crop-production-section {
+  margin-top: 1.5rem;
+  text-align: left;
+}
+
+.crop-production-heading {
+  margin-bottom: 0.85rem;
+  text-align: center;
+}
+
+.crop-production-heading h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+
+.crop-production-heading p,
+.crop-production-period {
+  margin: 0;
+  color: var(--gray-color);
+  font-size: 0.8rem;
+}
+
+.crop-production-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.crop-production-item {
+  padding: 0.85rem;
+  border: 1px solid #e7ece8;
+  border-radius: var(--border-radius);
+  background: #fff;
+}
+
+.crop-production-item h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.crop-production-item ol {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crop-production-item li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.crop-production-item li strong {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.crop-production-source {
+  display: block;
+  margin-top: 0.8rem;
+  color: var(--gray-color);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
 .crop-recommendation {
   display: flex;
   align-items: center;
@@ -594,14 +749,6 @@ header {
 
 .subscribe-btn:hover {
   background-color: #f57c00;
-}
-
-.notification-status {
-  max-width: 280px;
-  margin-top: 0.5rem;
-  color: #237a3b;
-  font-size: 0.8rem;
-  line-height: 1.4;
 }
 
 /* API Key Input */
@@ -837,6 +984,17 @@ footer {
 }
 
 @media (max-width: 480px) {
+  .crop-pie-layout {
+    flex-direction: column;
+    align-items: center;
+    padding-left: 0;
+  }
+
+  .crop-pie-legend {
+    width: 100%;
+    max-width: 220px;
+  }
+
   .sidebar {
     padding: 0.85rem 1rem;
   }

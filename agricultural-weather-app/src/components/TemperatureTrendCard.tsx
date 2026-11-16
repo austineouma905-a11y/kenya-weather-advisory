@@ -12,7 +12,7 @@ const chartHeight = 300;
 const plot = { left: 54, right: 20, top: 20, bottom: 48 };
 
 const TemperatureTrendCard: React.FC<TemperatureTrendCardProps> = ({ countyName, days, error }) => {
-  const completeWeek = days.length === 7;
+  const hasWeekRecords = days.length > 0;
   const allTemperatures = days.flatMap((day) => [day.high_c, day.low_c]);
   const dataMin = allTemperatures.length ? Math.min(...allTemperatures) : 0;
   const dataMax = allTemperatures.length ? Math.max(...allTemperatures) : 1;
@@ -35,27 +35,38 @@ const TemperatureTrendCard: React.FC<TemperatureTrendCardProps> = ({ countyName,
     weekday: 'short',
     timeZone: 'UTC',
   }).format(new Date(`${date}T00:00:00Z`));
+  const formatRecordDate = (date: string) => new Intl.DateTimeFormat('en', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00Z`));
+  const recordPeriod = hasWeekRecords
+    ? `${formatRecordDate(days[0].date)} – ${formatRecordDate(days[days.length - 1].date)}`
+    : '';
 
   return (
     <section className="card temperature-trend-card" aria-labelledby="temperature-trend-title">
       <div className="card-header">
         <div>
-          <h2 className="card-title" id="temperature-trend-title">Weekly Temperature Trend - {countyName}</h2>
-          <p className="temperature-trend-subtitle">Daily highs and lows, Monday to Sunday · °C</p>
+          <h2 className="card-title" id="temperature-trend-title">Weekly Temperature Record - {countyName}</h2>
+          <p className="temperature-trend-subtitle">
+            {hasWeekRecords ? `Week record: ${recordPeriod} · Daily highs and lows · °C` : 'Daily highs and lows · °C'}
+          </p>
         </div>
         <i className="fas fa-chart-line card-icon" aria-hidden="true"></i>
       </div>
 
       {error ? (
         <p role="status" className="temperature-trend-message">{error}</p>
-      ) : !completeWeek ? (
-        <p role="status" className="temperature-trend-message">Weekly temperature data is not available right now.</p>
+      ) : !hasWeekRecords ? (
+        <p role="status" className="temperature-trend-message">This week’s temperature record is not available right now.</p>
       ) : (
         <>
           <div className="temperature-chart-legend" aria-label="Chart legend">
             <span><i className="temperature-legend-high" aria-hidden="true"></i> Daily high</span>
             <span><i className="temperature-legend-low" aria-hidden="true"></i> Daily low</span>
-            <span className="temperature-chart-source">Model-based history and forecast · Open-Meteo</span>
+            <span><i className="temperature-legend-reference" aria-hidden="true"></i>Previous week reference (grey)</span>
           </div>
           <div className="temperature-trend-content">
             <div className="temperature-chart-scroll">
@@ -63,9 +74,9 @@ const TemperatureTrendCard: React.FC<TemperatureTrendCardProps> = ({ countyName,
                 className="temperature-chart"
                 viewBox={`0 0 ${chartWidth} ${chartHeight}`}
                 role="img"
-                aria-label={`Daily high and low temperatures for ${countyName}, Monday through Sunday`}
+                aria-label={`Daily high and low temperatures for ${countyName}, ${recordPeriod}`}
               >
-                <desc>Daily high and low temperatures in Celsius by weekday. Orange bars show daily highs and green bars show daily lows.</desc>
+                <desc>Daily high and low temperatures in Celsius by weekday. Red bars show highs, green bars show lows, and grey bars show the previous week’s values for future days.</desc>
                 {Array.from({ length: 5 }, (_, index) => {
                   const value = maxTemperature - ((maxTemperature - minTemperature) * index) / 4;
                   const y = yFor(value);
@@ -86,9 +97,9 @@ const TemperatureTrendCard: React.FC<TemperatureTrendCardProps> = ({ countyName,
                       width={barWidth}
                       height={chartBottom - yFor(day.high_c)}
                       rx="3"
-                      className="temperature-bar-high"
+                      className={`temperature-bar-high${day.isPreviousWeek ? ' temperature-bar-reference' : ''}`}
                     >
-                      <title>{`${formatDay(day.date)} high: ${day.high_c.toFixed(1)}°C`}</title>
+                      <title>{`${formatDay(day.date)}${day.isPreviousWeek ? ' (previous week reference)' : ''} high: ${day.high_c.toFixed(1)}°C`}</title>
                     </rect>
                     <rect
                       x={xFor(index) + barGap / 2}
@@ -96,12 +107,12 @@ const TemperatureTrendCard: React.FC<TemperatureTrendCardProps> = ({ countyName,
                       width={barWidth}
                       height={chartBottom - yFor(day.low_c)}
                       rx="3"
-                      className="temperature-bar-low"
+                      className={`temperature-bar-low${day.isPreviousWeek ? ' temperature-bar-reference' : ''}`}
                     >
-                      <title>{`${formatDay(day.date)} low: ${day.low_c.toFixed(1)}°C`}</title>
+                      <title>{`${formatDay(day.date)}${day.isPreviousWeek ? ' (previous week reference)' : ''} low: ${day.low_c.toFixed(1)}°C`}</title>
                     </rect>
                     <text x={xFor(index)} y={chartHeight - 15} textAnchor="middle" className="temperature-axis-label">
-                      {formatDay(day.date)}
+                      {formatDay(day.date)}{day.isPreviousWeek ? '*' : ''}
                     </text>
                   </g>
                 ))}
@@ -117,9 +128,11 @@ const TemperatureTrendCard: React.FC<TemperatureTrendCardProps> = ({ countyName,
                 <tbody>
                   {days.map((day) => (
                     <tr key={day.date}>
-                      <th scope="row">{formatDay(day.date)}</th>
-                      <td className="temperature-summary-high">{Math.round(day.high_c)}°</td>
-                      <td className="temperature-summary-low">{Math.round(day.low_c)}°</td>
+                      <th scope="row" className={day.isPreviousWeek ? 'temperature-summary-reference' : undefined}>
+                        {formatDay(day.date)}{day.isPreviousWeek ? ' (last week)' : ''}
+                      </th>
+                      <td className={`temperature-summary-high${day.isPreviousWeek ? ' temperature-summary-reference' : ''}`}>{Math.round(day.high_c)}°</td>
+                      <td className={`temperature-summary-low${day.isPreviousWeek ? ' temperature-summary-reference' : ''}`}>{Math.round(day.low_c)}°</td>
                     </tr>
                   ))}
                 </tbody>

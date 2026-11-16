@@ -113,7 +113,7 @@ const createTemperatureWeekHandler = () => async (req, res) => {
   upstream.searchParams.set('longitude', coordinates.longitude);
   upstream.searchParams.set('current', 'temperature_2m');
   upstream.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min');
-  upstream.searchParams.set('past_days', '6');
+  upstream.searchParams.set('past_days', '13');
   upstream.searchParams.set('forecast_days', '7');
   upstream.searchParams.set('timezone', 'auto');
 
@@ -126,21 +126,33 @@ const createTemperatureWeekHandler = () => async (req, res) => {
       return sendJson(res, 502, { error: 'The weather provider returned incomplete weekly data.' });
     }
 
-    // Use the provider's local date, then return this local calendar week Monday through Sunday.
+    // Keep the full current week visible. Future days use the matching weekday
+    // from last week as a grey reference until this week's data is available.
     const today = new Date(`${todayText}T00:00:00Z`);
     const monday = new Date(today);
     monday.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
-    const sunday = new Date(monday);
-    sunday.setUTCDate(monday.getUTCDate() + 6);
     const mondayText = monday.toISOString().slice(0, 10);
-    const sundayText = sunday.toISOString().slice(0, 10);
 
-    const days = data.daily.time.flatMap((date, index) => {
-      const high = data.daily.temperature_2m_max?.[index];
-      const low = data.daily.temperature_2m_min?.[index];
-      if (date < mondayText || date > sundayText || !Number.isFinite(high) || !Number.isFinite(low)) return [];
-      return [{ date, high_c: high, low_c: low }];
-    });
+    const valuesByDate = new Map(data.daily.time.map((date, index) => [date, {
+      high: data.daily.temperature_2m_max?.[index],
+      low: data.daily.temperature_2m_min?.[index],
+    }]));
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(monday);
+      date.setUTCDate(monday.getUTCDate() + index);
+      const dateText = date.toISOString().slice(0, 10);
+      const isPreviousWeek = dateText > todayText;
+      if (isPreviousWeek) date.setUTCDate(date.getUTCDate() - 7);
+      const sourceDate = date.toISOString().slice(0, 10);
+      const values = valuesByDate.get(sourceDate);
+      if (!Number.isFinite(values?.high) || !Number.isFinite(values?.low)) return null;
+      return {
+        date: dateText,
+        high_c: values.high,
+        low_c: values.low,
+        ...(isPreviousWeek ? { isPreviousWeek: true } : {}),
+      };
+    }).filter(Boolean);
 
     return sendJson(res, 200, { timezone: data.timezone, source: 'Open-Meteo', days });
   } catch (_error) {

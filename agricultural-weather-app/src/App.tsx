@@ -8,6 +8,7 @@ import ForecastCard from './components/ForecastCard';
 import SoilCard from './components/SoilCard';
 import AlertCard from './components/AlertCard';
 import CropsCard from './components/CropsCard';
+import CropSuitabilityChart from './components/CropSuitabilityChart';
 import Footer from './components/Footer';
 import TemperatureTrendCard from './components/TemperatureTrendCard';
 import { kenyanCounties } from './data/counties';
@@ -692,6 +693,7 @@ const App: React.FC = () => {
           days={temperatureTrend}
           error={temperatureTrendError}
         />
+        <CropSuitabilityChart cropScores={cropScores} />
       </main>
       
       <Footer />

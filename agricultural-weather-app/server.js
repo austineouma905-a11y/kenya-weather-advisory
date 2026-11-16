@@ -7,7 +7,7 @@ const appRoot = __dirname;
 const buildRoot = path.join(appRoot, 'build');
 const port = Number(process.env.PORT || 5001);
 const host = process.env.HOST || '127.0.0.1';
-const serverVersion = 'weather-proxy-v3';
+const serverVersion = 'weather-proxy-v4';
 
 // Load local secrets for development. Existing environment variables take precedence.
 const envFile = path.join(appRoot, '.env.local');
