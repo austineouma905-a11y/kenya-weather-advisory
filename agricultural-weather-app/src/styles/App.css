@@ -874,20 +874,23 @@ footer {
   }
 
   .region-list {
-    display: block;
-    max-height: max(280px, calc(100vh - 300px));
-    overflow-x: hidden;
-    overflow-y: auto;
+    display: flex;
+    gap: 0.5rem;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.4rem;
     scrollbar-width: thin;
   }
 
   .region-list li {
-    flex: initial;
-    white-space: normal;
+    flex: 0 0 auto;
+    margin: 0;
+    white-space: nowrap;
   }
 
   .county-info {
-    display: block;
+    display: none;
   }
 
   .main-content {
