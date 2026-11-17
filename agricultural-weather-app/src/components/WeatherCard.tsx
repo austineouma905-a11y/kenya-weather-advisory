@@ -59,6 +59,16 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ weatherData, location }) => {
           <div className="detail-value">{weatherData.uv === null ? 'Unavailable' : weatherData.uv.toFixed(1)}</div>
           <div className="detail-label">UV Index (model estimate)</div>
         </div>
+        <div className="detail-item">
+          <i className="fas fa-sun detail-icon"></i>
+          <div className="detail-value">{weatherData.sunrise_local ?? 'Unavailable'}</div>
+          <div className="detail-label">Sunrise</div>
+        </div>
+        <div className="detail-item">
+          <i className="fas fa-moon detail-icon"></i>
+          <div className="detail-value">{weatherData.sunset_local ?? 'Unavailable'}</div>
+          <div className="detail-label">Sunset</div>
+        </div>
       </div>
     </div>
   );

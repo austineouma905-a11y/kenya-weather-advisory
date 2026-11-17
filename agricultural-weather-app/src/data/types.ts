@@ -16,6 +16,8 @@ export interface County {
 export interface WeatherData {
   location: string;
   observed_at?: number;
+  sunrise_local?: string | null;
+  sunset_local?: string | null;
   temp_c: number;
   condition: string;
   humidity: number;
@@ -32,11 +34,20 @@ export interface ForecastDay {
     maxtemp_c: number;
     mintemp_c: number;
     totalprecip_mm: number;
+    precipitation_probability: number | null;
     avgtemp_c: number;
     condition: {
       code: number;
     };
   };
+}
+
+export interface HourlyForecast {
+  time: string;
+  temp_c: number;
+  precipitation_probability: number | null;
+  precipitation_mm: number;
+  condition_code: number;
 }
 
 export interface TemperatureTrendDay {

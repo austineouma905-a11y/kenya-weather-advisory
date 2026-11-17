@@ -1,11 +1,12 @@
 import React from 'react';
-import { ForecastDay } from '../data/types';
+import { ForecastDay, HourlyForecast } from '../data/types';
 
 interface ForecastCardProps {
   forecastData: ForecastDay[];
+  hourlyData: HourlyForecast[];
 }
 
-const ForecastCard: React.FC<ForecastCardProps> = ({ forecastData }) => {
+const ForecastCard: React.FC<ForecastCardProps> = ({ forecastData, hourlyData }) => {
   const getWeatherIconClass = (code: number) => {
     if (code === 1000) return 'fa-sun';
     if (code === 1003) return 'fa-cloud-sun';
@@ -17,62 +18,50 @@ const ForecastCard: React.FC<ForecastCardProps> = ({ forecastData }) => {
     return 'fa-cloud';
   };
 
-  const getDayName = (dateString: string, index: number) => {
-    if (index === 0) return 'Today';
-    
-    const date = new Date(dateString);
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-    return dayName.substring(0, 3);
-  };
-
-  // Format precipitation to 2 decimal places, show 0.00 if 0
-  const formatPrecipitation = (mm: number): string => {
-    if (mm === 0) return '0.00';
-    return mm.toFixed(2);
-  };
-
-  // Ensure we only show 3 days
-  const displayForecast = forecastData.slice(0, 3);
+  const formatProbability = (probability: number | null) => (
+    probability === null ? '—' : `${Math.round(probability)}%`
+  );
+  const formatDay = (date: string, index: number) => index === 0
+    ? 'Today'
+    : new Intl.DateTimeFormat('en', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
 
   return (
-    <div className="card">
+    <div className="card forecast-card">
       <div className="card-header">
-        <h2 className="card-title">3-Day Forecast</h2>
-        <i className="fas fa-calendar-alt card-icon"></i>
+        <h2 className="card-title">5-Day Forecast</h2>
+        <i className="fas fa-calendar-alt card-icon" aria-hidden="true"></i>
       </div>
-      
-      <div className="forecast-container">
-        {displayForecast.map((day, index) => {
-          const iconClass = getWeatherIconClass(day.day.condition.code);
-          const dayName = getDayName(day.date, index);
-          const precipitation = formatPrecipitation(day.day.totalprecip_mm);
-          
-          return (
-            <div key={`${day.date}-${index}`} className="forecast-day">
-              <div className="day-name">{dayName}</div>
-              <i className={`fas ${iconClass} forecast-icon`}></i>
-              <div className="day-temp">
-                {Math.round(day.day.maxtemp_c)}° / {Math.round(day.day.mintemp_c)}°
-              </div>
-              <div className="day-rain">{precipitation} mm</div>
-            </div>
-          );
-        })}
-        
-        {/* If we have less than 3 days, show placeholder */}
-        {displayForecast.length < 3 && (
-          <>
-            {Array.from({ length: 3 - displayForecast.length }).map((_, index) => (
-              <div key={`placeholder-${index}`} className="forecast-day" style={{ opacity: 0.5 }}>
-                <div className="day-name">--</div>
-                <i className="fas fa-cloud forecast-icon"></i>
-                <div className="day-temp">--° / --°</div>
-                <div className="day-rain">0.00 mm</div>
+
+      {hourlyData.length > 0 && (
+        <section className="hourly-forecast" aria-labelledby="hourly-forecast-title">
+          <h3 id="hourly-forecast-title">Next 15 hours · 3-hour intervals</h3>
+          <div className="hourly-forecast-scroll">
+            {hourlyData.map((period) => (
+              <div className="hourly-forecast-period" key={period.time}>
+                <strong>{period.time}</strong>
+                <span>{Math.round(period.temp_c)}°C</span>
+                <span><i className="fas fa-cloud-rain" aria-hidden="true"></i> {formatProbability(period.precipitation_probability)}</span>
+                <small>{period.precipitation_mm.toFixed(1)} mm</small>
               </div>
             ))}
-          </>
-        )}
+          </div>
+        </section>
+      )}
+
+      <div className="forecast-container">
+        {forecastData.map((day, index) => (
+          <div key={day.date} className="forecast-day">
+            <div className="day-name">{formatDay(day.date, index)}</div>
+            <i className={`fas ${getWeatherIconClass(day.day.condition.code)} forecast-icon`} aria-hidden="true"></i>
+            <div className="day-temp">{Math.round(day.day.maxtemp_c)}° / {Math.round(day.day.mintemp_c)}°C</div>
+            <div className="day-rain-probability">
+              <i className="fas fa-cloud-rain" aria-hidden="true"></i> {formatProbability(day.day.precipitation_probability)} rain chance
+            </div>
+            <div className="day-rain">{day.day.totalprecip_mm.toFixed(1)} mm forecast</div>
+          </div>
+        ))}
       </div>
+      <p className="forecast-data-note">Rain chances and amounts are forecasts, not observed rainfall.</p>
     </div>
   );
 };

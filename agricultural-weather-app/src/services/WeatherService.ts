@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ForecastDay, TemperatureTrendDay, WeatherData } from '../data/types';
+import { ForecastDay, HourlyForecast, TemperatureTrendDay, WeatherData } from '../data/types';
 
 interface CountyCoordinates {
   name: string;
@@ -8,10 +8,22 @@ interface CountyCoordinates {
 }
 
 interface ForecastItem {
+  dt: number;
   dt_txt: string;
   main: { temp: number };
   weather: Array<{ id: number }>;
   rain?: { '3h'?: number };
+  pop?: number;
+}
+
+interface ForecastResponse {
+  city?: { timezone?: number };
+  list?: ForecastItem[];
+}
+
+interface CountyForecast {
+  days: ForecastDay[];
+  hours: HourlyForecast[];
 }
 
 const requestWeather = async <T,>(url: string, county: CountyCoordinates): Promise<T> => {
@@ -52,10 +64,20 @@ const mapWeatherCode = (openWeatherCode: number): number => {
 export const fetchWeatherForCounty = async (countyName: string, county: CountyCoordinates): Promise<WeatherData> => {
   const data = await requestWeather<any>('/api/weather', county);
   const now = data.dt ?? Math.floor(Date.now() / 1000);
+  const timezoneOffset = Number(data.timezone) || 0;
+  const formatLocalTime = (timestamp?: number): string | null => {
+    if (!timestamp) return null;
+    const local = new Date((timestamp + timezoneOffset) * 1000);
+    const hour = local.getUTCHours();
+    const minute = local.getUTCMinutes().toString().padStart(2, '0');
+    return `${((hour + 11) % 12) + 1}:${minute} ${hour >= 12 ? 'PM' : 'AM'}`;
+  };
 
   return {
     location: countyName,
     observed_at: now,
+    sunrise_local: formatLocalTime(data.sys?.sunrise),
+    sunset_local: formatLocalTime(data.sys?.sunset),
     temp_c: data.main.temp,
     condition: data.weather[0].description,
     humidity: data.main.humidity,
@@ -67,31 +89,53 @@ export const fetchWeatherForCounty = async (countyName: string, county: CountyCo
   };
 };
 
-/** Groups the server-proxied 5-day/3-hour forecast into three calendar days. */
-export const fetchForecastForCounty = async (county: CountyCoordinates): Promise<ForecastDay[]> => {
-  const data = await requestWeather<{ list?: ForecastItem[] }>('/api/forecast', county);
+/** Groups the server-proxied 5-day/3-hour forecast into local days and near-term periods. */
+export const fetchForecastForCounty = async (county: CountyCoordinates): Promise<CountyForecast> => {
+  const data = await requestWeather<ForecastResponse>('/api/forecast', county);
   const items: ForecastItem[] = data.list ?? [];
+  const timezoneOffset = data.city?.timezone ?? 0;
   const grouped = new Map<string, ForecastItem[]>();
 
   items.forEach((item) => {
-    const date = item.dt_txt.slice(0, 10);
+    const date = new Date((item.dt + timezoneOffset) * 1000).toISOString().slice(0, 10);
     grouped.set(date, [...(grouped.get(date) ?? []), item]);
   });
 
-  return Array.from(grouped.entries()).slice(0, 3).map(([date, readings]) => {
+  const days = Array.from(grouped.entries()).slice(0, 5).map(([date, readings]) => {
     const temperatures = readings.map((reading) => reading.main.temp);
     const representative = readings[Math.floor(readings.length / 2)];
+    const probabilities = readings.map((reading) => reading.pop).filter((probability): probability is number => Number.isFinite(probability));
     return {
       date,
       day: {
         maxtemp_c: Math.max(...temperatures),
         mintemp_c: Math.min(...temperatures),
         totalprecip_mm: readings.reduce((total, reading) => total + (reading.rain?.['3h'] ?? 0), 0),
+        precipitation_probability: probabilities.length ? Math.max(...probabilities) * 100 : null,
         avgtemp_c: temperatures.reduce((total, temperature) => total + temperature, 0) / temperatures.length,
         condition: { code: mapWeatherCode(representative.weather[0].id) },
       },
     };
   });
+
+  const currentTime = Date.now() / 1000;
+  const hours = items
+    .filter((item) => item.dt > currentTime)
+    .slice(0, 5)
+    .map((item) => {
+      const local = new Date((item.dt + timezoneOffset) * 1000);
+      const hour = local.getUTCHours();
+      const minute = local.getUTCMinutes().toString().padStart(2, '0');
+      return {
+        time: `${((hour + 11) % 12) + 1}:${minute} ${hour >= 12 ? 'PM' : 'AM'}`,
+        temp_c: item.main.temp,
+        precipitation_probability: Number.isFinite(item.pop) ? (item.pop as number) * 100 : null,
+        precipitation_mm: item.rain?.['3h'] ?? 0,
+        condition_code: mapWeatherCode(item.weather[0].id),
+      };
+    });
+
+  return { days, hours };
 };
 
 export interface TemperatureTrendResponse {

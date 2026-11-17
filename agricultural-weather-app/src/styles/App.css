@@ -320,6 +320,48 @@ header {
 }
 
 /* Forecast Card */
+.forecast-card {
+  min-width: 0;
+}
+
+.hourly-forecast {
+  margin-bottom: 1.1rem;
+}
+
+.hourly-forecast h3 {
+  margin-bottom: 0.6rem;
+  color: var(--dark-color);
+  font-size: 0.95rem;
+}
+
+.hourly-forecast-scroll {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+  scrollbar-width: thin;
+}
+
+.hourly-forecast-period {
+  display: flex;
+  min-width: 96px;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.65rem 0.5rem;
+  border-radius: var(--border-radius);
+  background: #f8f9fa;
+  font-size: 0.8rem;
+}
+
+.hourly-forecast-period > span:nth-of-type(2) {
+  color: #3275a8;
+}
+
+.hourly-forecast-period small {
+  color: var(--gray-color);
+}
+
 .forecast-container {
   display: flex;
   justify-content: space-between;
@@ -336,6 +378,25 @@ header {
   padding: 1rem;
   background-color: #f8f9fa;
   border-radius: var(--border-radius);
+}
+
+.day-rain-probability {
+  margin-top: 0.35rem;
+  color: #3275a8;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.day-rain {
+  color: var(--gray-color);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.forecast-data-note {
+  margin-top: 0.65rem;
+  color: var(--gray-color);
+  font-size: 0.75rem;
 }
 
 .day-name {

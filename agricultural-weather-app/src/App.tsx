@@ -13,7 +13,7 @@ import Footer from './components/Footer';
 import TemperatureTrendCard from './components/TemperatureTrendCard';
 import { kenyanCounties } from './data/counties';
 import { CROP_DATA } from './data/cropData';
-import { WeatherData, ForecastDay, TemperatureTrendDay } from './data/types';
+import { WeatherData, ForecastDay, HourlyForecast, TemperatureTrendDay } from './data/types';
 
 import { fetchForecastForCounty, fetchTemperatureTrendForCounty, fetchWeatherForCounty } from './services/WeatherService';
 import { getObservedTemperatureRange, recordObservedTemperature } from './services/ObservedTemperatureService';
@@ -61,6 +61,7 @@ const App: React.FC = () => {
   const [selectedCounty, setSelectedCounty] = useState<string>('Nairobi');
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [forecastData, setForecastData] = useState<ForecastDay[]>([]);
+  const [hourlyForecast, setHourlyForecast] = useState<HourlyForecast[]>([]);
   const [temperatureTrend, setTemperatureTrend] = useState<TemperatureTrendDay[]>([]);
   const [temperatureTrendError, setTemperatureTrendError] = useState<string | null>(null);
   const [soilMoisture, setSoilMoisture] = useState<number>(65);
@@ -188,7 +189,7 @@ const App: React.FC = () => {
 
   const generateMockForecast = (): ForecastDay[] => {
     const forecast: ForecastDay[] = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       const date = new Date();
       date.setDate(date.getDate() + i);
       
@@ -198,6 +199,7 @@ const App: React.FC = () => {
           maxtemp_c: 25 + Math.random() * 5,
           mintemp_c: 15 + Math.random() * 5,
           totalprecip_mm: Math.random() * 8,
+          precipitation_probability: Math.random() * 100,
           avgtemp_c: 20 + Math.random() * 5,
           condition: { code: getRandomIconCode() }
         }
@@ -452,16 +454,16 @@ const App: React.FC = () => {
       console.timeEnd('⏱️ Current weather fetch');
       console.log('✅ Current weather data:', currentWeather);
       
-      // Fetch 3-day forecast using One Call API
+      // Fetch five-day and near-term forecast from the 5-day/3-hour endpoint
       console.time('⏱️ Forecast fetch (One Call)');
       const forecast = await fetchForecastForCounty(requestCounty);
       console.timeEnd('⏱️ Forecast fetch (One Call)');
-      console.log('📅 Forecast data received:', forecast.length, 'days');
+      console.log('📅 Forecast data received:', forecast.days.length, 'days');
       
       // Do not fabricate missing live forecast days; the card displays placeholders.
       const trendResult = await trendPromise;
       const finalTemperatureTrend = addObservedRangeForToday(trendResult.days, trendResult.today, countyName);
-      const finalForecast = [...forecast];
+      const finalForecast = [...forecast.days];
       
       // Sort by date to ensure correct order
       finalForecast.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -488,6 +490,7 @@ const App: React.FC = () => {
       
       setWeatherData(currentWeather);
       setForecastData(finalForecast);
+      setHourlyForecast(forecast.hours);
       setTemperatureTrend(finalTemperatureTrend);
       setTemperatureTrendError(trendResult.error);
       setSoilMoisture(moisture);
@@ -529,6 +532,7 @@ const App: React.FC = () => {
     
     setWeatherData(mockWeather);
     setForecastData(mockForecast);
+    setHourlyForecast([]);
     setSoilMoisture(moisture);
     setAdvisoryLevel(level);
     setAdvisories(advisories);
@@ -701,7 +705,7 @@ const App: React.FC = () => {
         )}
         
         {forecastData.length > 0 && (
-          <ForecastCard forecastData={forecastData} />
+          <ForecastCard forecastData={forecastData} hourlyData={hourlyForecast} />
         )}
 
         <AdvisoryCard 
