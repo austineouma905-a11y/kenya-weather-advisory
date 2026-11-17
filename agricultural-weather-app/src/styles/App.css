@@ -356,9 +356,15 @@ header {
 }
 
 .temperature-trend-subtitle,
-.temperature-trend-message {
+.temperature-trend-message,
+.temperature-data-note {
   color: var(--gray-color);
   font-size: 0.9rem;
+}
+
+.temperature-data-note {
+  margin: -0.2rem 0 0.75rem;
+  font-size: 0.8rem;
 }
 
 .temperature-chart-legend {

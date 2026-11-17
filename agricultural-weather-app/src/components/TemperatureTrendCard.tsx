@@ -68,6 +68,9 @@ const TemperatureTrendCard: React.FC<TemperatureTrendCardProps> = ({ countyName,
             <span><i className="temperature-legend-low" aria-hidden="true"></i> Daily low</span>
             <span><i className="temperature-legend-reference" aria-hidden="true"></i>Previous week reference (grey)</span>
           </div>
+          <p className="temperature-data-note">
+            Today tracks current readings while the app is open, so its high and low can match at first. Completed days use ECMWF IFS historical analysis.
+          </p>
           <div className="temperature-trend-content">
             <div className="temperature-chart-scroll">
               <svg
@@ -76,7 +79,7 @@ const TemperatureTrendCard: React.FC<TemperatureTrendCardProps> = ({ countyName,
                 role="img"
                 aria-label={`Daily high and low temperatures for ${countyName}, ${recordPeriod}`}
               >
-                <desc>Daily high and low temperatures in Celsius by weekday. Red bars show highs, green bars show lows, and grey bars show the previous week’s values for future days.</desc>
+                <desc>Daily high and low temperatures in Celsius by weekday. Red bars show highs, green bars show lows, and grey bars show previous-week reference values.</desc>
                 {Array.from({ length: 5 }, (_, index) => {
                   const value = maxTemperature - ((maxTemperature - minTemperature) * index) / 4;
                   const y = yFor(value);
@@ -99,7 +102,7 @@ const TemperatureTrendCard: React.FC<TemperatureTrendCardProps> = ({ countyName,
                       rx="3"
                       className={`temperature-bar-high${day.isPreviousWeek ? ' temperature-bar-reference' : ''}`}
                     >
-                      <title>{`${formatDay(day.date)}${day.isPreviousWeek ? ' (previous week reference)' : ''} high: ${day.high_c.toFixed(1)}°C`}</title>
+                      <title>{`${formatDay(day.date)}${day.isObserved ? ' (live range so far)' : day.isPreviousWeek ? ' (previous week reference)' : ' (historical analysis)'} high: ${day.high_c.toFixed(1)}°C`}</title>
                     </rect>
                     <rect
                       x={xFor(index) + barGap / 2}
@@ -109,7 +112,7 @@ const TemperatureTrendCard: React.FC<TemperatureTrendCardProps> = ({ countyName,
                       rx="3"
                       className={`temperature-bar-low${day.isPreviousWeek ? ' temperature-bar-reference' : ''}`}
                     >
-                      <title>{`${formatDay(day.date)}${day.isPreviousWeek ? ' (previous week reference)' : ''} low: ${day.low_c.toFixed(1)}°C`}</title>
+                      <title>{`${formatDay(day.date)}${day.isObserved ? ' (live range so far)' : day.isPreviousWeek ? ' (previous week reference)' : ' (historical analysis)'} low: ${day.low_c.toFixed(1)}°C`}</title>
                     </rect>
                     <text x={xFor(index)} y={chartHeight - 15} textAnchor="middle" className="temperature-axis-label">
                       {formatDay(day.date)}{day.isPreviousWeek ? '*' : ''}
@@ -129,7 +132,7 @@ const TemperatureTrendCard: React.FC<TemperatureTrendCardProps> = ({ countyName,
                   {days.map((day) => (
                     <tr key={day.date}>
                       <th scope="row" className={day.isPreviousWeek ? 'temperature-summary-reference' : undefined}>
-                        {formatDay(day.date)}{day.isPreviousWeek ? ' (last week)' : ''}
+                        {formatDay(day.date)}{day.isObserved ? ' (live so far)' : day.isPreviousWeek ? ' (last week)' : ' (analysis)'}
                       </th>
                       <td className={`temperature-summary-high${day.isPreviousWeek ? ' temperature-summary-reference' : ''}`}>{Math.round(day.high_c)}°</td>
                       <td className={`temperature-summary-low${day.isPreviousWeek ? ' temperature-summary-reference' : ''}`}>{Math.round(day.low_c)}°</td>

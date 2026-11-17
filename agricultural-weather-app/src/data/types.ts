@@ -15,6 +15,7 @@ export interface County {
 
 export interface WeatherData {
   location: string;
+  observed_at?: number;
   temp_c: number;
   condition: string;
   humidity: number;
@@ -43,6 +44,8 @@ export interface TemperatureTrendDay {
   high_c: number;
   low_c: number;
   isPreviousWeek?: boolean;
+  isReanalysis?: boolean;
+  isObserved?: boolean;
 }
 
 export interface CropData {

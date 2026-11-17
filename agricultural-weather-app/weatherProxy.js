@@ -35,6 +35,17 @@ const getKenyaCoordinates = (url) => {
   return { latitude, longitude };
 };
 
+const getKenyaDateText = (date) => {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Africa/Nairobi',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
+};
+
 const createWeatherHandler = (endpoint) => async (req, res) => {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -108,30 +119,31 @@ const createTemperatureWeekHandler = () => async (req, res) => {
   const coordinates = getKenyaCoordinates(url);
   if (!coordinates) return sendJson(res, 400, { error: 'Provide a valid location in Kenya.' });
 
-  const upstream = new URL('https://api.open-meteo.com/v1/forecast');
+  const todayText = getKenyaDateText(new Date());
+  const today = new Date(`${todayText}T00:00:00Z`);
+  const monday = new Date(today);
+  monday.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
+  const previousMonday = new Date(monday);
+  previousMonday.setUTCDate(monday.getUTCDate() - 7);
+  const yesterday = new Date(today);
+  yesterday.setUTCDate(today.getUTCDate() - 1);
+
+  const upstream = new URL('https://archive-api.open-meteo.com/v1/archive');
   upstream.searchParams.set('latitude', coordinates.latitude);
   upstream.searchParams.set('longitude', coordinates.longitude);
-  upstream.searchParams.set('current', 'temperature_2m');
+  upstream.searchParams.set('start_date', previousMonday.toISOString().slice(0, 10));
+  upstream.searchParams.set('end_date', yesterday.toISOString().slice(0, 10));
   upstream.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min');
-  upstream.searchParams.set('past_days', '13');
-  upstream.searchParams.set('forecast_days', '7');
+  upstream.searchParams.set('models', 'ecmwf_ifs');
   upstream.searchParams.set('timezone', 'auto');
 
   try {
     const response = await fetch(upstream, { signal: AbortSignal.timeout(10000) });
-    if (!response.ok) return sendJson(res, 502, { error: 'Could not load the weekly temperature trend.' });
+    if (!response.ok) return sendJson(res, 502, { error: 'Could not load historical temperature analysis.' });
     const data = await response.json();
-    const todayText = data.current?.time?.slice(0, 10);
-    if (!todayText || !Array.isArray(data.daily?.time)) {
+    if (!Array.isArray(data.daily?.time)) {
       return sendJson(res, 502, { error: 'The weather provider returned incomplete weekly data.' });
     }
-
-    // Keep the full current week visible. Future days use the matching weekday
-    // from last week as a grey reference until this week's data is available.
-    const today = new Date(`${todayText}T00:00:00Z`);
-    const monday = new Date(today);
-    monday.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
-    const mondayText = monday.toISOString().slice(0, 10);
 
     const valuesByDate = new Map(data.daily.time.map((date, index) => [date, {
       high: data.daily.temperature_2m_max?.[index],
@@ -141,7 +153,7 @@ const createTemperatureWeekHandler = () => async (req, res) => {
       const date = new Date(monday);
       date.setUTCDate(monday.getUTCDate() + index);
       const dateText = date.toISOString().slice(0, 10);
-      const isPreviousWeek = dateText > todayText;
+      const isPreviousWeek = dateText >= todayText;
       if (isPreviousWeek) date.setUTCDate(date.getUTCDate() - 7);
       const sourceDate = date.toISOString().slice(0, 10);
       const values = valuesByDate.get(sourceDate);
@@ -150,13 +162,14 @@ const createTemperatureWeekHandler = () => async (req, res) => {
         date: dateText,
         high_c: values.high,
         low_c: values.low,
+        isReanalysis: true,
         ...(isPreviousWeek ? { isPreviousWeek: true } : {}),
       };
     }).filter(Boolean);
 
-    return sendJson(res, 200, { timezone: data.timezone, source: 'Open-Meteo', days });
+    return sendJson(res, 200, { timezone: data.timezone, today: todayText, source: 'Open-Meteo ECMWF IFS analysis', days });
   } catch (_error) {
-    return sendJson(res, 502, { error: 'Could not reach the temperature forecast provider.' });
+    return sendJson(res, 502, { error: 'Could not reach the historical temperature provider.' });
   }
 };
 

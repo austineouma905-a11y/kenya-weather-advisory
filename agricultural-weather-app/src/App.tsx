@@ -16,6 +16,7 @@ import { CROP_DATA } from './data/cropData';
 import { WeatherData, ForecastDay, TemperatureTrendDay } from './data/types';
 
 import { fetchForecastForCounty, fetchTemperatureTrendForCounty, fetchWeatherForCounty } from './services/WeatherService';
+import { getObservedTemperatureRange, recordObservedTemperature } from './services/ObservedTemperatureService';
 
 interface WeatherAlert {
   headline: string;
@@ -27,6 +28,23 @@ interface UserLocation {
   latitude: number;
   longitude: number;
 }
+
+const addObservedRangeForToday = (
+  days: TemperatureTrendDay[],
+  today: string | null,
+  countyName: string
+): TemperatureTrendDay[] => {
+  if (!today) return days;
+  const observedRange = getObservedTemperatureRange(countyName, today);
+  if (!observedRange) return days;
+  return days.map((day) => day.date === today ? {
+    ...day,
+    ...observedRange,
+    isPreviousWeek: false,
+    isReanalysis: false,
+    isObserved: true,
+  } : day);
+};
 
 const nearestCounty = (location: UserLocation) => kenyanCounties.reduce((nearest, county) => {
   const toRadians = (degrees: number) => degrees * Math.PI / 180;
@@ -413,17 +431,24 @@ const App: React.FC = () => {
       lon: requestCounty.longitude
     });
     
+    const trendPromise = fetchTemperatureTrendForCounty(requestCounty)
+      .then(({ days, today }) => ({ days, today, error: null as string | null }))
+      .catch((error: unknown) => ({
+        days: [] as TemperatureTrendDay[],
+        today: null,
+        error: error instanceof Error ? error.message : 'Weekly temperature trend is unavailable.',
+      }));
+
     try {
-      const trendPromise = fetchTemperatureTrendForCounty(requestCounty)
-        .then((days) => ({ days, error: null as string | null }))
-        .catch((error: unknown) => ({
-          days: [] as TemperatureTrendDay[],
-          error: error instanceof Error ? error.message : 'Weekly temperature trend is unavailable.',
-        }));
 
       // Fetch current weather
       console.time('⏱️ Current weather fetch');
       const currentWeather = await fetchWeatherForCounty(countyName, requestCounty);
+      recordObservedTemperature(
+        countyName,
+        currentWeather.temp_c,
+        currentWeather.observed_at ?? Math.floor(Date.now() / 1000)
+      );
       console.timeEnd('⏱️ Current weather fetch');
       console.log('✅ Current weather data:', currentWeather);
       
@@ -435,6 +460,7 @@ const App: React.FC = () => {
       
       // Do not fabricate missing live forecast days; the card displays placeholders.
       const trendResult = await trendPromise;
+      const finalTemperatureTrend = addObservedRangeForToday(trendResult.days, trendResult.today, countyName);
       const finalForecast = [...forecast];
       
       // Sort by date to ensure correct order
@@ -462,7 +488,7 @@ const App: React.FC = () => {
       
       setWeatherData(currentWeather);
       setForecastData(finalForecast);
-      setTemperatureTrend(trendResult.days);
+      setTemperatureTrend(finalTemperatureTrend);
       setTemperatureTrendError(trendResult.error);
       setSoilMoisture(moisture);
       setAdvisoryLevel(level);
@@ -475,6 +501,9 @@ const App: React.FC = () => {
       console.log('🎉 State updated successfully with real API data');
       
     } catch (error: unknown) {
+      const trendResult = await trendPromise;
+      setTemperatureTrend(addObservedRangeForToday(trendResult.days, trendResult.today, countyName));
+      setTemperatureTrendError(trendResult.error);
       const message = error instanceof Error ? error.message : 'Failed to fetch weather data';
       console.error('Weather API error:', error);
       setApiError(message);

@@ -55,6 +55,7 @@ export const fetchWeatherForCounty = async (countyName: string, county: CountyCo
 
   return {
     location: countyName,
+    observed_at: now,
     temp_c: data.main.temp,
     condition: data.weather[0].description,
     humidity: data.main.humidity,
@@ -93,10 +94,18 @@ export const fetchForecastForCounty = async (county: CountyCoordinates): Promise
   });
 };
 
-export const fetchTemperatureTrendForCounty = async (county: CountyCoordinates): Promise<TemperatureTrendDay[]> => {
-  const data = await requestWeather<{ days?: TemperatureTrendDay[] }>('/api/temperature-week', county);
+export interface TemperatureTrendResponse {
+  days: TemperatureTrendDay[];
+  today: string;
+}
+
+export const fetchTemperatureTrendForCounty = async (county: CountyCoordinates): Promise<TemperatureTrendResponse> => {
+  const data = await requestWeather<{ days?: TemperatureTrendDay[]; today?: string }>('/api/temperature-week', county);
   if (!Array.isArray(data.days)) {
     throw new Error('The weekly trend route is missing. Restart the weather server with npm start.');
   }
-  return data.days ?? [];
+  if (typeof data.today !== 'string') {
+    throw new Error('The weekly temperature route did not return the local date. Restart the weather server with npm start.');
+  }
+  return { days: data.days, today: data.today };
 };
