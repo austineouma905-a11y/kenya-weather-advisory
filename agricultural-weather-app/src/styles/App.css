@@ -617,6 +617,40 @@ header {
   color: var(--primary-color);
 }
 
+/* Modelled soil-water data */
+.soil-layer-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+}
+
+.soil-layer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--border-radius);
+  background: #f8f9fa;
+  font-size: 0.85rem;
+}
+
+.soil-layer strong {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.soil-data-note,
+.soil-data-source,
+.soil-data-message {
+  color: var(--gray-color);
+  font-size: 0.78rem;
+}
+
+.soil-data-source {
+  margin-top: 0.5rem;
+}
+
 /* Crops Card */
 .crop-suitability-chart {
   grid-column: 1 / -1;

@@ -1,41 +1,52 @@
 import React from 'react';
+import { SoilMoistureData } from '../data/types';
 
 interface SoilCardProps {
-  soilMoisture: number;
-  condition: string;
-  advisories: string[];
+  data: SoilMoistureData | null;
+  error: string | null;
 }
 
-const SoilCard: React.FC<SoilCardProps> = ({ soilMoisture, condition, advisories }) => {
-  let moistureStatus = '';
-  if (soilMoisture > 80) moistureStatus = 'Saturated';
-  else if (soilMoisture > 60) moistureStatus = 'Optimal';
-  else if (soilMoisture > 40) moistureStatus = 'Moderately Dry';
-  else moistureStatus = 'Dry';
+const SoilCard: React.FC<SoilCardProps> = ({ data, error }) => {
+  const layers = data ? [
+    { label: 'Surface soil · 0–7 cm', value: data.surface_m3_m3 },
+    { label: 'Upper root zone · 7–28 cm', value: data.upper_root_m3_m3 },
+    { label: 'Deeper root zone · 28–100 cm', value: data.lower_root_m3_m3 },
+  ].filter((layer): layer is { label: string; value: number } => layer.value !== null) : [];
+  const measuredAt = data?.timestamp
+    ? new Intl.DateTimeFormat('en-KE', {
+      timeZone: 'Africa/Nairobi',
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(data.timestamp))
+    : null;
 
   return (
-    <div className="card">
+    <div className="card soil-card">
       <div className="card-header">
-        <h2 className="card-title">Soil Conditions</h2>
-        <i className="fas fa-mountain card-icon"></i>
+        <h2 className="card-title">Modelled Soil Water</h2>
+        <i className="fas fa-mountain card-icon" aria-hidden="true"></i>
       </div>
-      
-      <div className="detail-item" style={{ marginBottom: '1rem' }}>
-        <i className="fas fa-tint detail-icon"></i>
-        <div className="detail-value">{soilMoisture}%</div>
-        <div className="detail-label">Soil Moisture ({moistureStatus})</div>
-      </div>
-      
-      <p>{condition}</p>
-      
-      <div className="advisory-list" style={{ marginTop: '1rem' }}>
-        {advisories.map((advisory, index) => (
-          <li key={index}>
-            <i className="fas fa-info-circle"></i>
-            {advisory}
-          </li>
-        ))}
-      </div>
+
+      {error ? (
+        <p role="status" className="soil-data-message">Soil-water model data is unavailable: {error}</p>
+      ) : layers.length ? (
+        <>
+          <div className="soil-layer-list">
+            {layers.map(({ label, value }) => (
+              <div className="soil-layer" key={label}>
+                <span>{label}</span>
+                <strong>{value.toFixed(3)} m³/m³</strong>
+              </div>
+            ))}
+          </div>
+          <p className="soil-data-note">
+            Modelled volumetric water content, not a farm sensor reading. Values vary with soil type and local field conditions; use a field check before deciding to irrigate.
+          </p>
+          <p className="soil-data-source">Source: Open-Meteo weather model{measuredAt ? ` · Updated ${measuredAt} EAT` : ''}</p>
+        </>
+      ) : (
+        <p role="status" className="soil-data-message">Loading modelled soil-water data…</p>
+      )}
     </div>
   );
 };

@@ -173,4 +173,51 @@ const createTemperatureWeekHandler = () => async (req, res) => {
   }
 };
 
-module.exports = { createWeatherHandler, createTemperatureWeekHandler };
+const createSoilMoistureHandler = () => async (req, res) => {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    return sendJson(res, 405, { error: 'Method not allowed.' });
+  }
+
+  const url = new URL(req.url, 'http://localhost');
+  const coordinates = getKenyaCoordinates(url);
+  if (!coordinates) return sendJson(res, 400, { error: 'Provide a valid location in Kenya.' });
+
+  const upstream = new URL('https://api.open-meteo.com/v1/forecast');
+  upstream.searchParams.set('latitude', coordinates.latitude);
+  upstream.searchParams.set('longitude', coordinates.longitude);
+  upstream.searchParams.set('hourly', 'soil_moisture_0_to_7cm,soil_moisture_7_to_28cm,soil_moisture_28_to_100cm');
+  upstream.searchParams.set('past_hours', '3');
+  upstream.searchParams.set('forecast_hours', '1');
+  upstream.searchParams.set('timezone', 'UTC');
+
+  try {
+    const response = await fetch(upstream, { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) return sendJson(res, 502, { error: 'Could not load modelled soil-water data.' });
+    const data = await response.json();
+    const hourly = data.hourly;
+    if (!Array.isArray(hourly?.time) || !hourly.time.length) {
+      return sendJson(res, 502, { error: 'The soil-water provider returned incomplete data.' });
+    }
+
+    const now = Date.now();
+    let index = -1;
+    hourly.time.forEach((time, candidateIndex) => {
+      if (Date.parse(`${time}Z`) <= now) index = candidateIndex;
+    });
+    if (index < 0) return sendJson(res, 502, { error: 'No current soil-water timestep is available.' });
+
+    const valueAt = (name) => Number.isFinite(hourly[name]?.[index]) ? hourly[name][index] : null;
+    return sendJson(res, 200, {
+      timestamp: `${hourly.time[index]}Z`,
+      surface_m3_m3: valueAt('soil_moisture_0_to_7cm'),
+      upper_root_m3_m3: valueAt('soil_moisture_7_to_28cm'),
+      lower_root_m3_m3: valueAt('soil_moisture_28_to_100cm'),
+      source: 'Open-Meteo weather-model soil moisture',
+    });
+  } catch (_error) {
+    return sendJson(res, 502, { error: 'Could not reach the soil-water provider.' });
+  }
+};
+
+module.exports = { createWeatherHandler, createTemperatureWeekHandler, createSoilMoistureHandler };

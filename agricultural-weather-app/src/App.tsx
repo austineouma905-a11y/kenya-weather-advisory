@@ -13,9 +13,9 @@ import Footer from './components/Footer';
 import TemperatureTrendCard from './components/TemperatureTrendCard';
 import { kenyanCounties } from './data/counties';
 import { CROP_DATA } from './data/cropData';
-import { WeatherData, ForecastDay, HourlyForecast, TemperatureTrendDay } from './data/types';
+import { WeatherData, ForecastDay, HourlyForecast, SoilMoistureData, TemperatureTrendDay } from './data/types';
 
-import { fetchForecastForCounty, fetchTemperatureTrendForCounty, fetchWeatherForCounty } from './services/WeatherService';
+import { fetchForecastForCounty, fetchSoilMoistureForCounty, fetchTemperatureTrendForCounty, fetchWeatherForCounty } from './services/WeatherService';
 import { getObservedTemperatureRange, recordObservedTemperature } from './services/ObservedTemperatureService';
 
 interface WeatherAlert {
@@ -62,9 +62,10 @@ const App: React.FC = () => {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [forecastData, setForecastData] = useState<ForecastDay[]>([]);
   const [hourlyForecast, setHourlyForecast] = useState<HourlyForecast[]>([]);
+  const [soilMoistureData, setSoilMoistureData] = useState<SoilMoistureData | null>(null);
+  const [soilMoistureError, setSoilMoistureError] = useState<string | null>(null);
   const [temperatureTrend, setTemperatureTrend] = useState<TemperatureTrendDay[]>([]);
   const [temperatureTrendError, setTemperatureTrendError] = useState<string | null>(null);
-  const [soilMoisture, setSoilMoisture] = useState<number>(65);
   const [advisoryLevel, setAdvisoryLevel] = useState<'low' | 'medium' | 'high'>('low');
   const [advisories, setAdvisories] = useState<string[]>([]);
   const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
@@ -208,8 +209,8 @@ const App: React.FC = () => {
     return forecast;
   };
 
-  // Calculate crop scores based on real weather data
-  const calculateCropScores = (weather: WeatherData, estimatedSoilMoisture: number): Array<{crop: string; score: number}> => {
+  // Calculate crop scores from air temperature and recent rainfall only.
+  const calculateCropScores = (weather: WeatherData): Array<{crop: string; score: number}> => {
     const scores = Object.keys(CROP_DATA).map(cropName => {
       const crop = CROP_DATA[cropName];
       let score = 0;
@@ -222,20 +223,12 @@ const App: React.FC = () => {
         score += 2;
       }
       
-      // Soil moisture is estimated separately; humidity is not a soil measurement.
-      if (estimatedSoilMoisture >= crop.soilMoisture.min && estimatedSoilMoisture <= crop.soilMoisture.max) {
-        score += 3;
-      } else if (Math.abs(estimatedSoilMoisture - crop.soilMoisture.min) < 10 ||
-                Math.abs(estimatedSoilMoisture - crop.soilMoisture.max) < 10) {
-        score += 1;
-      }
-      
       // Rainfall score (30% weight)
       if (weather.precip_mm > 0 && weather.precip_mm <= 15) {
         score += 3;
       }
       
-      return { crop: cropName, score };
+      return { crop: cropName, score: Math.round((score / 7) * 10) };
     });
     
     return scores;
@@ -331,83 +324,6 @@ const App: React.FC = () => {
     return alerts;
   };
 
-  // Calculate soil moisture based on real weather
-  const calculateSoilMoisture = (weather: WeatherData): number => {
-    let moisture = 50; // Base moisture
-    
-    // Adjust based on recent rainfall
-    if (weather.precip_mm > 15) moisture += 30;
-    else if (weather.precip_mm > 10) moisture += 20;
-    else if (weather.precip_mm > 5) moisture += 15;
-    else if (weather.precip_mm > 2) moisture += 10;
-    else if (weather.precip_mm < 1) moisture -= 15;
-    
-    // Adjust based on temperature (evaporation)
-    if (weather.temp_c > 30) moisture -= 15;
-    else if (weather.temp_c > 25) moisture -= 10;
-    else if (weather.temp_c < 15) moisture += 5;
-    
-    // Adjust based on wind (drying effect)
-    if (weather.wind_kph > 25) moisture -= 10;
-    else if (weather.wind_kph > 15) moisture -= 5;
-    
-    // Adjust based on humidity
-    if (weather.humidity > 80) moisture += 10;
-    else if (weather.humidity < 40) moisture -= 10;
-    
-    // Ensure within bounds
-    return Math.min(95, Math.max(15, Math.round(moisture)));
-  };
-
-  const getSoilCondition = (moisture: number): string => {
-    if (moisture > 85) return 'Soil is saturated. High risk of waterlogging.';
-    if (moisture > 70) return 'Soil moisture is excellent for most crops.';
-    if (moisture > 55) return 'Soil moisture is adequate.';
-    if (moisture > 40) return 'Soil is moderately dry. Consider irrigation soon.';
-    if (moisture > 25) return 'Soil is dry. Irrigation recommended.';
-    return 'Soil is very dry. Immediate irrigation required.';
-  };
-
-  const getSoilAdvisories = (moisture: number): string[] => {
-    if (moisture > 85) {
-      return [
-        'Delay all irrigation activities',
-        'Improve drainage systems',
-        'Avoid field work in wet conditions'
-      ];
-    } else if (moisture > 70) {
-      return [
-        'Ideal conditions for planting',
-        'Minimal irrigation needed',
-        'Good time for fertilizer application'
-      ];
-    } else if (moisture > 55) {
-      return [
-        'Adequate soil moisture',
-        'Monitor soil conditions daily',
-        'Plan irrigation for next 3-4 days'
-      ];
-    } else if (moisture > 40) {
-      return [
-        'Schedule irrigation in 1-2 days',
-        'Use mulch to conserve moisture',
-        'Water in early morning or evening'
-      ];
-    } else if (moisture > 25) {
-      return [
-        'Irrigate immediately',
-        'Use drip irrigation for efficiency',
-        'Consider drought-resistant varieties'
-      ];
-    } else {
-      return [
-        'Emergency irrigation required',
-        'Prioritize water for high-value crops',
-        'Consult agricultural extension officer'
-      ];
-    }
-  };
-
   // Fetch real weather data using One Call API
   const fetchRealWeatherData = async (countyName: string, location?: UserLocation | null) => {
     console.log(`🔄 Fetching weather data for: ${countyName}`);
@@ -440,6 +356,14 @@ const App: React.FC = () => {
         today: null,
         error: error instanceof Error ? error.message : 'Weekly temperature trend is unavailable.',
       }));
+    const soilMoisturePromise = fetchSoilMoistureForCounty(requestCounty)
+      .then((data) => ({ data, error: null as string | null }))
+      .catch((error: unknown) => ({
+        data: null,
+        error: error instanceof Error ? error.message : 'Modelled soil-water data is unavailable.',
+      }));
+    setSoilMoistureData(null);
+    setSoilMoistureError(null);
 
     try {
 
@@ -462,6 +386,7 @@ const App: React.FC = () => {
       
       // Do not fabricate missing live forecast days; the card displays placeholders.
       const trendResult = await trendPromise;
+      const soilResult = await soilMoisturePromise;
       const finalTemperatureTrend = addObservedRangeForToday(trendResult.days, trendResult.today, countyName);
       const finalForecast = [...forecast.days];
       
@@ -476,13 +401,11 @@ const App: React.FC = () => {
       })));
       
       // Process the data
-      const moisture = calculateSoilMoisture(currentWeather);
       const { level, advisories } = generateAdvisories(currentWeather);
       const weatherAlerts = generateAlerts(currentWeather);
-      const scores = calculateCropScores(currentWeather, moisture);
+      const scores = calculateCropScores(currentWeather);
       
       console.log('🧮 Calculated data:', {
-        soilMoisture: moisture,
         advisoryLevel: level,
         advisoriesCount: advisories.length,
         alertsCount: weatherAlerts.length
@@ -493,7 +416,8 @@ const App: React.FC = () => {
       setHourlyForecast(forecast.hours);
       setTemperatureTrend(finalTemperatureTrend);
       setTemperatureTrendError(trendResult.error);
-      setSoilMoisture(moisture);
+      setSoilMoistureData(soilResult.data);
+      setSoilMoistureError(soilResult.error);
       setAdvisoryLevel(level);
       setAdvisories(advisories);
       setAlerts(weatherAlerts);
@@ -505,8 +429,11 @@ const App: React.FC = () => {
       
     } catch (error: unknown) {
       const trendResult = await trendPromise;
+      const soilResult = await soilMoisturePromise;
       setTemperatureTrend(addObservedRangeForToday(trendResult.days, trendResult.today, countyName));
       setTemperatureTrendError(trendResult.error);
+      setSoilMoistureData(soilResult.data);
+      setSoilMoistureError(soilResult.error);
       const message = error instanceof Error ? error.message : 'Failed to fetch weather data';
       console.error('Weather API error:', error);
       setApiError(message);
@@ -525,15 +452,15 @@ const App: React.FC = () => {
     console.log(`🔄 Using mock data for: ${countyName}`);
     const mockWeather = generateMockWeatherData(countyName);
     const mockForecast = generateMockForecast();
-    const moisture = calculateSoilMoisture(mockWeather);
     const { level, advisories } = generateAdvisories(mockWeather);
     const mockAlerts = generateAlerts(mockWeather);
-    const scores = calculateCropScores(mockWeather, moisture);
+    const scores = calculateCropScores(mockWeather);
     
     setWeatherData(mockWeather);
     setForecastData(mockForecast);
     setHourlyForecast([]);
-    setSoilMoisture(moisture);
+    setSoilMoistureData(null);
+    setSoilMoistureError('Live soil-water data is unavailable while using sample weather data.');
     setAdvisoryLevel(level);
     setAdvisories(advisories);
     setAlerts(mockAlerts);
@@ -713,11 +640,7 @@ const App: React.FC = () => {
           advisories={advisories}
         />
         
-        <SoilCard 
-          soilMoisture={soilMoisture}
-          condition={getSoilCondition(soilMoisture)}
-          advisories={getSoilAdvisories(soilMoisture)}
-        />
+        <SoilCard data={soilMoistureData} error={soilMoistureError} />
         
         <AlertCard alerts={alerts} />
         

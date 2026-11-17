@@ -50,6 +50,14 @@ export interface HourlyForecast {
   condition_code: number;
 }
 
+export interface SoilMoistureData {
+  timestamp: string;
+  surface_m3_m3: number | null;
+  upper_root_m3_m3: number | null;
+  lower_root_m3_m3: number | null;
+  source: string;
+}
+
 export interface TemperatureTrendDay {
   date: string;
   high_c: number;

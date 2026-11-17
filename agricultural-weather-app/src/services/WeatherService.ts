@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ForecastDay, HourlyForecast, TemperatureTrendDay, WeatherData } from '../data/types';
+import { ForecastDay, HourlyForecast, SoilMoistureData, TemperatureTrendDay, WeatherData } from '../data/types';
 
 interface CountyCoordinates {
   name: string;
@@ -152,4 +152,12 @@ export const fetchTemperatureTrendForCounty = async (county: CountyCoordinates):
     throw new Error('The weekly temperature route did not return the local date. Restart the weather server with npm start.');
   }
   return { days: data.days, today: data.today };
+};
+
+export const fetchSoilMoistureForCounty = async (county: CountyCoordinates): Promise<SoilMoistureData> => {
+  const data = await requestWeather<SoilMoistureData>('/api/soil-moisture', county);
+  if (typeof data.timestamp !== 'string') {
+    throw new Error('The soil-water service returned incomplete data.');
+  }
+  return data;
 };
